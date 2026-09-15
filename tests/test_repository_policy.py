@@ -31,13 +31,17 @@ class RepositoryPolicyTests(unittest.TestCase):
         event = ci['on']['pull_request']
         self.assertEqual(event['branches'], ['main'])
         self.assertFalse({'paths', 'paths-ignore', 'branches-ignore'} & event.keys())
-        self.assertTrue({'opened', 'reopened', 'synchronize'} <= set(event['types']))
+        self.assertTrue({'opened', 'reopened', 'synchronize', 'edited'} <= set(event['types']))
         job = ci['jobs']['repository-policy']
         self.assertEqual(job['name'], 'repository-policy')
         for field in ['if', 'needs', 'continue-on-error']:
             self.assertNotIn(field, job)
         runs = [step['run'] for step in job['steps'] if 'run' in step]
         self.assertIn('python -B -m unittest discover -s tests -v\n', runs)
+        self.assertTrue(any(
+            'go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12' in run
+            and '"$(go env GOPATH)/bin/actionlint" .github/workflows/ci.yml .github/workflows/main-automerge.yml' in run
+            for run in runs))
         for step in job['steps']:
             self.assertNotIn('if', step)
             self.assertNotIn('continue-on-error', step)
@@ -59,6 +63,14 @@ class RepositoryPolicyTests(unittest.TestCase):
             bad['on']['pull_request'][field] = value
             with self.subTest(field=field), self.assertRaises(AssertionError):
                 self.assert_check_contract(config, bad)
+        bad = copy.deepcopy(ci)
+        bad['on']['pull_request']['types'].remove('edited')
+        with self.assertRaises(AssertionError):
+            self.assert_check_contract(config, bad)
+        bad = copy.deepcopy(ci)
+        bad['jobs']['repository-policy']['steps'].pop()
+        with self.assertRaises(AssertionError):
+            self.assert_check_contract(config, bad)
         bad = copy.deepcopy(ci)
         del bad['on']['pull_request']
         with self.assertRaises(KeyError):
