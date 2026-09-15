@@ -1,0 +1,5 @@
+{
+  "schema": 1,
+  "readyCanMerge": true,
+  "source": "Readiness policy observed 2026-09-15 for natejswenson/local-memory main at 9cef83cb2b4579a078fd662c6afaaf332d08af6a: .github/workflows/main-automerge.yml handles ready_for_review and invokes gh pr merge --auto --squash for ready same-repository PRs. PR #3 merged this automation at 2026-09-15T18:30:32Z. This is merge-capable automation even though repository auto-merge is currently disabled and PR #4 has no auto-merge request. Keep PR #4 draft; ready and merge are excluded. Recheck effective automation and policy after changes. See .issueflow/README.md."
+}
