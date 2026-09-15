@@ -1,0 +1,29 @@
+{
+  "workflowPattern": "github-flow",
+  "branches": {
+    "main": "main"
+  },
+  "featureBranchPrefix": "feature/",
+  "requiredChecks": [
+    "repository-policy"
+  ],
+  "mergeMethod": {
+    "devToMainMethod": "squash"
+  },
+  "protectionOwner": "shipflow",
+  "release": {
+    "enabled": true,
+    "mode": "manual-gate",
+    "releaseCredential": "SHIPFLOW_AUTOMERGE_PAT"
+  },
+  "branchCleanup": {
+    "deleteOnMerge": true,
+    "protectedBranches": [
+      "main"
+    ]
+  },
+  "enforceAdmins": true,
+  "renderedTemplateHashes": {
+    ".github/workflows/main-automerge.yml": "cc58b0e7af07393e718f3a476fad6a52abb55ebd0ade6770088426aba821ff90"
+  }
+}
