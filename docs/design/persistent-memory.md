@@ -126,11 +126,12 @@ These checks prevent accidental cross-project disclosure by cooperative adapters
 
 Recall accepts exact `keys` or free-text `query`, plus optional type filters. Empty keys/query is invalid; listing all records is an inspection operation.
 For free text, use up to 16 literal tokens from at most 256 characters, with query operators escaped. Match exact key or all requested tokens in key/content; bind SQL parameters.
+Matching selects candidate type/key groups, not final records: expand each matched group to **all scope-eligible competing records** before applying correction precedence or conflict resolution, including competitors whose text does not match the query. Return only the resolved value (even if its text does not match), or withhold the group as a conflict; use the group’s best matching score for ranking.
 FTS5 mode uses a documented tokenizer; scan mode uses NFC, lowercase, and Unicode letter/number tokens with no stemming. Responses disclose the mode so quality comparisons remain honest.
 After resolving same-key conflicts and precedence, rank exact-key matches first, then lexical score, then `updated_at` descending, then ID ascending for a stable tie break.
 Freshness is eligibility, not permission to discard a correction in favor of a newer inference.
 Default recall is five records/4 KiB; hard maximum is ten/8 KiB of serialized `context` UTF-8, including provenance and conflict keys.
-Drop whole lowest-ranked records to fit; report `truncated` and `omitted_count` for eligible results only. Never cut a sentence into a different meaning.
+Accept integer `max_context_bytes` from 64 through 8192; smaller budgets return `INVALID_REQUEST` without context. Serialize `context` as compact JSON and measure its actual UTF-8 bytes, including escaping and container syntax. Sort conflict keys lexically; drop whole lowest-ranked records first, then conflict keys from the end until the entire context fits. The empty context fits every accepted budget. Set `truncated` when the record limit or byte budget omits anything; `omitted_count` counts omitted resolved records plus omitted conflict-key entries from eligible groups only, outside `context`. Never cut record text or a conflict key.
 Adapters must also respect the host's remaining context budget and may request less. No token count is promised across models.
 
 ## Interface and worked examples
@@ -303,6 +304,7 @@ Forget and expiry cleanup use a resumable protocol under a maintenance lock resp
 5. At an exclusive maintenance opportunity, checkpoint and compact the active database; report physical cleanup pending until this finishes. Never claim secure erasure from filesystem snapshots or hardware.
 
 Supported restore always merges the **current**, non-restored deletion journal into a validated snapshot before serving it. Journal absence, corruption, or an unverifiable manifest blocks restoration; an older journal may not replace the current one.
+Before publishing any restored database, atomically clear **every** restored `share_with` allowlist and stored sharing selection, increment versions of records whose allowlists changed, and invalidate pending pre-restore sharing selections. This deliberate loss of all sharing grants preserves post-snapshot revocations without a second journal; even previously valid recipients receive no result until the user makes a fresh selection against the restored record/version. Restore reports that sharing was reset; interrupted restore cannot serve a snapshot before this reset and deletion replay complete.
 Keep content-free deletion IDs indefinitely until the user explicitly resets the entire module. This small ledger is outside the live-record capacity; measure growth in the pilot and block further mutations if journal durability fails.
 A backup containing a forgotten ID cannot be restored through this interface. Re-remembering the same proposition requires a new explicit capture with a new ID; replaying an old request cannot resurrect it.
 JSON/Markdown exports are user-requested copies with an export warning and deletion-sequence metadata, not automatically imported backups. No bulk import in v1.
@@ -358,6 +360,7 @@ These are **future implementation acceptance tests**, not behavior tested in thi
 | Exact duplicate and replay after lost response | One record; stable mutation result within receipt window; no duplicate versions |
 | Conflicting duplicate; explicit/inferred inputs in both orders | Existing correction never overwritten; suggested inference never recalled; explicit update needed |
 | Equal-precedence cross-owner contradiction in both orders | Key withheld with bounded conflict metadata; no arrival-order winner |
+| Lexical query `hashtags`: same-key preference “Use hashtags” and nonmatching correction “Use plain text only”; repeat with equal provenance | Resolve across both eligible owners: return the correction regardless of lexical mismatch, or withhold the key for equal-precedence conflict; test FTS5 and scan |
 | Two simultaneous writers; same expected version | Serialized independent writes; one conflicting update succeeds, the other returns current version |
 | Busy database beyond deadline | Bounded `BUSY`, at most one adapter retry, no invented success |
 | Process killed before/after commit and before acknowledgment | Old or new complete record/index/receipt state; replay disambiguates |
@@ -366,8 +369,10 @@ These are **future implementation acceptance tests**, not behavior tested in thi
 | Database corruption; invalid snapshot; missing deletion journal | Fail closed; preserve evidence; no empty reset or unchecked restore |
 | Older schema, failed migration, newer schema with old CLI | Explicit backed-up migration or version error; no partial upgrade/downgrade |
 | Forget with crash after each purge step; restore old managed backup | ID immediately suppressed once intent durable; cleanup resumes; no resurrection |
+| Restore snapshot taken before recipient revocation; interrupt restoration before publication | All restored sharing is cleared before reads; revoked recipient gets no result, and sharing requires a fresh user selection |
 | Forget with unwritable backup; reader holding WAL open | `PURGE_PENDING` or physical cleanup pending accurately reported; recall remains empty |
 | FTS5 unavailable; lexical query; oversize context/record | Disclosed scan fallback; unchanged scope/exact-key results; bounded output; invalid record rejected |
+| 1,000 eligible conflicting keys, no records; mixed records/conflicts; budgets 64, 8192, and 63 bytes | Serialized context never exceeds accepted budget; deterministic whole-entry omissions and exact eligible omitted count; 63 rejected without context |
 | Secret-shaped input and instruction injection in recalled text | Secret rejected without logging it; recalled instruction cannot invoke tools or authorize actions |
 | Source succeeds/mirror fails; source fails; manual source edit | Source precedence and pending status honored; no memory-only correction; mismatched mirror excluded |
 | Forget mirror, restart, reconcile, disable/re-enable adapter | Suppression prevents automatic reimport; source retention explained; rollback loses no correction |
