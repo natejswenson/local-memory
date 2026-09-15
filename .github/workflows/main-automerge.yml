@@ -1,0 +1,96 @@
+name: auto-merge to main
+
+# Rendered by shipflow's apply.mjs from this template. Do not hand-edit
+# without also updating .github/shipflow.json's renderedTemplateHashes entry
+# for this file, or shipflow's next apply will refuse to overwrite it
+# (handEditDetected) until an explicit --force is passed. Commit both files
+# together in the same commit.
+#
+# GitHub Flow has no separate promotion branch. Only ready PRs from this
+# repository are eligible for auto-merge; repository write access is the trust
+# boundary. Forks (and missing head repositories) skip both jobs because ordinary
+# pull_request events cannot supply repository secrets to forks. Maintainers
+# review fork PRs and enable auto-merge or merge with their own credentials after
+# required checks, and may add release-pending manually. No PR code is executed.
+# Same-repository merged PRs receive an optional reminder, never a tag or release.
+#
+# GH_TOKEN uses config.release.releaseCredential, NOT a hardcoded
+# secrets.GITHUB_TOKEN, because of GitHub's loop-prevention rule: a PR
+# auto-merged via `gh pr merge --auto` run under the default GITHUB_TOKEN
+# completes (later, asynchronously, once checks pass) attributed to the
+# github-actions[bot] identity — and a `pull_request: closed` event
+# resulting from that bot-attributed merge does NOT trigger this or any
+# other workflow's `on: pull_request` handlers. Confirmed empirically:
+# an identical PR merged by a real, PAT-authenticated actor fired the
+# closed-event trigger immediately; one completed by GITHUB_TOKEN-enabled
+# auto-merge fired no run at all. releaseCredential must therefore name a
+# real PAT/App-installation-token secret (not GITHUB_TOKEN) for
+# label-release-pending to ever actually run.
+
+on:
+  pull_request:
+    types: [opened, reopened, synchronize, ready_for_review, closed]
+    branches: [main]
+
+# Deny by default at the workflow level, grant per job. A workflow-level grant
+# applies to every job in the file, including ones added later that never
+# needed it — which is why zizmor's excessive-permissions rule flags it, and
+# why the fix is to scope rather than to waive.
+#
+# `contents: write` is dropped entirely, not moved. `gh pr merge --auto` only
+# *enables* native auto-merge, a pull-requests operation; GitHub performs the
+# merge itself afterwards, under its own automation rather than this token.
+permissions: {}
+
+jobs:
+  # Enables native GitHub auto-merge on open/reopen/synchronize/ready — this job
+  # does NOT wait for checks itself; it turns on auto-merge and exits. The
+  # actual merge happens asynchronously, later, whenever GitHub's own
+  # required-checks gate is satisfied (see the design's discussion of why a
+  # bespoke polling/blocking job was rejected).
+  auto-merge:
+    if: >-
+      github.event.action != 'closed' &&
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Enable auto-merge
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Skipping auto-merge: GH_TOKEN is unavailable or not configured."
+            exit 0
+          fi
+          gh pr merge --auto --squash "$PR_NUMBER" --repo "$PR_REPO"
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.SHIPFLOW_AUTOMERGE_PAT }}
+
+  # Fires once, when a PR actually merges (a separate event from the job
+  # above, which only *enables* auto-merge). Applies a durable
+  # release-pending label so a later, disconnected shipflow invocation can
+  # find this merge and ask about a release — the merge completion has no
+  # live Claude session attached to react to it directly.
+  label-release-pending:
+    if: >-
+      github.event.action == 'closed' &&
+      github.event.pull_request.merged == true &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - name: Apply release-pending label
+        run: |
+          if [ -z "$GH_TOKEN" ]; then
+            echo "Skipping release reminder: GH_TOKEN is unavailable or not configured."
+            exit 0
+          fi
+          gh pr edit "$PR_NUMBER" --add-label release-pending --repo "$PR_REPO"
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ secrets.SHIPFLOW_AUTOMERGE_PAT }}
