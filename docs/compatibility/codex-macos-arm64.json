@@ -1,0 +1,17 @@
+{
+  "node": "v25.2.1",
+  "executable": "/opt/homebrew/Cellar/node/25.2.1/bin/node",
+  "platform": "darwin",
+  "arch": "arm64",
+  "build_sqlite": "3.51.0",
+  "linked_sqlite": "3.53.1",
+  "wal": true,
+  "full_sync": true,
+  "transaction": true,
+  "online_backup": true,
+  "integrity": true,
+  "fts5": true,
+  "scan": true,
+  "restart": true,
+  "permissions": "0700/0600"
+}
