@@ -1,0 +1,33 @@
+{
+  "fixture": "10,000 synthetic live preference records; no user data",
+  "node": "v25.2.1",
+  "platform": "darwin",
+  "arch": "arm64",
+  "records": 10000,
+  "modes": {
+    "scan": {
+      "exact_key_recall": 1,
+      "lexical_recall": 1,
+      "samples": 10,
+      "p50_ms": 162,
+      "p95_ms": 166,
+      "maximum_context_bytes": 8192
+    },
+    "fts5": {
+      "exact_key_recall": 1,
+      "lexical_recall": 1,
+      "samples": 10,
+      "p50_ms": 158,
+      "p95_ms": 161,
+      "maximum_context_bytes": 8192
+    }
+  },
+  "database_bytes": 13586432,
+  "wal_bytes": 0,
+  "deletion_ledger_bytes_for_1000_ids": 118784,
+  "wal_admission": {
+    "soft_bytes": 33554432,
+    "hard_bytes": 67108864
+  },
+  "foreground_limit_ms": 4800
+}

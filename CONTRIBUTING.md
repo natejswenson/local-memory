@@ -238,3 +238,31 @@ existence check is coarse. Explain pending entries and investigate any
 `handEditDetected` instead of forcing over it. Before initial activation, the
 expected pending entries are deletion protection, cleanup, and the reminder
 label. The generated workflow should already match the committed config.
+
+## Application checks
+
+Use Node 26.8.2 (minimum observed Node 25.2.1 with loaded SQLite >=3.51.3).
+The existing completion-policy tests import the real pinned Issueflow consumer;
+prepare its source before running tests. Do not replace those assertions with a
+mock or silently skip them. From a separately prepared checkout of
+`natejswenson/claude-skills` at **446ee69b1cf8b5cf0583694ea0e7744f71ae4f30**:
+
+```sh
+export ISSUEFLOW_COMPLETION_MODULE="file:///absolute/pinned/claude-skills/skills/issueflow/skills/issueflow/scripts/lib/completion.mjs"
+npm ci --ignore-scripts
+node scripts/compatibility.mjs
+node --test
+node scripts/benchmark.mjs
+python3 -B -m unittest discover -s tests -v
+actionlint .github/workflows/ci.yml .github/workflows/main-automerge.yml
+zizmor --no-progress .github/workflows/ci.yml .github/workflows/main-automerge.yml
+```
+
+Tests create synthetic temporary stores; never point fixtures at a personal data
+directory. Fault hooks require both `NODE_ENV=test` and
+`LOCAL_MEMORY_TESTING=1`. No tests perform live activation, publishing or user
+migration. The application CI job checks out that exact Issueflow commit under
+ignored `node_modules/` after npm setup, then supplies the same consumer URL.
+Both `repository-policy` and `application` run on draft PRs without path filters.
+Adding application CI does not activate or modify branch protection; issue #1
+still owns repository activation. Keep the generated merge workflow unchanged.

@@ -1,20 +1,40 @@
 # local-memory
 
-Repository foundation for local-memory. Application code has not been added yet.
+An opt-in local JSON CLI for short preferences, confirmed facts and project
+context. It provides scoped recall, explicit corrections, selected sharing,
+bounded context and deletion-aware recovery. Data stays outside skill installs.
 
-Contributions use GitHub Flow: short-lived feature and maintenance branches open
-pull requests directly to `main`. See [CONTRIBUTING.md](CONTRIBUTING.md) for the
-required `repository-policy` check, merge process, and maintainer audit commands.
+The dependency-free Node package includes a source-first ghostwriter companion
+for `writing.hashtags` and a small second writing client. Both treat recalled
+text as untrusted data; memory never grants authority for external actions.
+No live source stores have been migrated or activated, and no package has been
+published.
 
-## Setup status
+## Start here
 
-The committed files are the proposed policy and automation. Live activation and
-validation are pending: the maintainer must provision `SHIPFLOW_AUTOMERGE_PAT`,
-verify hosted CI, apply the reviewed settings, and complete a validation PR.
-The setup PR remains draft. Draft and fork PRs intentionally skip generated
-auto-merge; unavailable configured credentials leave automation inactive.
-Local test success does not establish that GitHub currently enforces this policy.
+- [Installation, protocol and management](docs/operations.md)
+- [Supported environments and observed probes](docs/compatibility/README.md)
+- [Durability, maintenance locks and crash recovery](docs/recovery.md)
+- [Validation matrix and measurements](docs/validation.md)
+- [Approved design](docs/design/persistent-memory.md)
 
-The workflow uses reviewed unreleased generator source, pinned to an immutable
-commit. See [maintainer source reproduction](CONTRIBUTING.md#maintainer-generator-source-unreleased)
-before regenerating or activating the setup.
+Use Node 26.8.2 for the pinned stock runtime. The minimum observed runtime is
+Node 25.2.1 with a linked SQLite >=3.51.3; the CLI checks the loaded library.
+The store is created only by explicit initialization. Basic checks:
+
+```sh
+npm ci --ignore-scripts
+node scripts/compatibility.mjs
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md#application-checks) for the full suite's
+pinned completion-policy dependency and local test commands.
+
+## Repository workflow
+
+Contributions use GitHub Flow: short-lived branches open PRs directly to `main`.
+CI retains `repository-policy` and adds `application`. Implementation PRs remain
+draft until separately authorized. Live repository activation and credentials
+remain the separate work in issue #1. A local pass does not establish hosted CI
+or enforcement. See [CONTRIBUTING.md](CONTRIBUTING.md) before changing settings or
+regenerating the merge automation.
