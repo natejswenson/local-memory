@@ -20,7 +20,7 @@ export function seed(home, count, { conflicts = false, mixed = false } = {}) {
     },
     created_at: "2026-09-15T00:00:00Z",
     updated_at: "2026-09-15T00:00:00Z",
-    review_after: "2027-01-01T00:00:00Z",
+    review_after: new Date(Date.now() + 180 * 86400000).toISOString(),
     expires_at: null,
     version: 1,
     status: "active",

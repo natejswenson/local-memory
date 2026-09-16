@@ -87,6 +87,8 @@ export function provenance(p) {
     ].includes(p.kind),
   );
   check(identifier(p.skill_version) && identifier(p.source_ref));
+  secret(p.skill_version);
+  secret(p.source_ref);
   check(
     typeof p.observed_at === "string" &&
       Number.isFinite(Date.parse(p.observed_at)),

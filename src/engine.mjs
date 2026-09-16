@@ -45,7 +45,7 @@ const OPTIONS = {
     "project_id",
   ],
   remember: ["record", "selection_token"],
-  update: ["id", "expected_version", "changes", "selection_token"],
+  update: ["id", "expected_version", "changes", "patch", "selection_token"],
   forget: ["id", "expected_version"],
   recall: [
     "keys",
@@ -168,6 +168,11 @@ function active(r, s) {
     sourceFresh(r, s)
   );
 }
+function revocation(input, old) {
+  return old && input && Object.keys(input).every((k) => k === "share_with" || k === "mirror") &&
+    Array.isArray(input.share_with) && input.share_with.every((id) => old.share_with.includes(id)) &&
+    (!input.mirror || stable(input.mirror) === stable(old.mirror));
+}
 function record(input, c, s, old) {
   fields(
     input,
@@ -202,6 +207,7 @@ function record(input, c, s, old) {
         data.provenance.kind,
       ),
     );
+  check(data.share_with === undefined || Array.isArray(data.share_with));
   data.share_with = [...new Set(data.share_with || [])].sort();
   check(Array.isArray(input.share_with ?? []) && data.share_with.length <= 16);
   check(
@@ -263,7 +269,8 @@ function record(input, c, s, old) {
         identifier(data.mirror.event) &&
         /^[a-f0-9]{64}$/.test(data.mirror.revision),
     );
-    check(sourceFresh({ ...data, owner_skill: owner }, s), "SOURCE_STALE");
+    if (!revocation(input, old))
+      check(sourceFresh({ ...data, owner_skill: owner }, s), "SOURCE_STALE");
   }
   const meta = { ...data };
   delete meta.content;
@@ -325,6 +332,7 @@ function replay(q, s, c) {
       return { ...r, managed_backups: "purged", physical_cleanup: "pending" };
     fail("GONE");
   }
+  if (q.op === "forget") return null;
   if (r.id) check(access(s.get(r.id), c, s, true), "NOT_FOUND");
   return r;
 }
@@ -350,7 +358,7 @@ function inspection(r, s) {
 }
 function recallOptions(q) {
   check(
-    (Array.isArray(q.keys) && q.keys.length > 0 && !q.query) ||
+    (Array.isArray(q.keys) && q.keys.length > 0 && q.query === undefined) ||
       (typeof q.query === "string" && !q.keys),
   );
   if (q.keys) check(q.keys.length <= 64 && q.keys.every(keyValid));
@@ -374,7 +382,7 @@ function recallOptions(q) {
       ["scan", "fts5"].includes(q.retrieval_mode),
   );
   let ts = [];
-  if (q.query) {
+  if (q.query !== undefined) {
     check(q.query.length <= 256);
     ts = tokens(q.query);
     check(ts.length > 0 && ts.length <= 16);
@@ -523,6 +531,11 @@ function page(q, s, c) {
 }
 export async function execute(q, { management = false } = {}) {
   validateRequest(q, management);
+  if (q.op === "update" && Object.hasOwn(q, "patch")) {
+    check(!Object.hasOwn(q, "changes"));
+    q = { ...q, changes: q.patch };
+    delete q.patch;
+  }
   if (q.op === "recall") recallOptions(q);
   const home = location(),
     s = new Store(home);
@@ -715,7 +728,7 @@ export async function execute(q, { management = false } = {}) {
       if (prior) return prior;
       if (q.op === "forget") {
         const r = s.get(q.id);
-        if (s.deleted(q.id))
+        if (c.management && s.deleted(q.id))
           return {
             id: q.id,
             deleted: true,
@@ -732,8 +745,11 @@ export async function execute(q, { management = false } = {}) {
           managed_backups: "purged",
           physical_cleanup: "pending",
         };
+        // Save scoped retry authorization before intent; replay only acknowledges it
+        // once the durable deletion journal proves the deletion occurred.
+        s.transaction(() => saveReceipt(q, s, c, result));
         s.intent(r.id);
-        s.replay(() => saveReceipt(q, s, c, result));
+        s.replay();
         return { ...result, physical_cleanup: s.cleanup() };
       }
       check(
@@ -745,7 +761,7 @@ export async function execute(q, { management = false } = {}) {
         check(q.expected_version === old.version, "VERSION_CONFLICT", {
           current_version: old.version,
         });
-        if (old.mirror)
+        if (old.mirror && !revocation(q.changes, old))
           check(
             !c.management &&
               q.changes?.mirror &&
@@ -808,7 +824,13 @@ export async function execute(q, { management = false } = {}) {
             version: existing.version,
             deduplicated: true,
           };
-          s.transaction(() => saveReceipt(q, s, c, result));
+          check(s.pressure().wal_bytes < LIMITS.walHard, "CAPACITY");
+          await s.snapshot();
+          s.transaction(() => {
+            saveReceipt(q, s, c, result);
+            check(s.db.prepare("PRAGMA page_count").get().page_count *
+              s.db.prepare("PRAGMA page_size").get().page_size <= LIMITS.database, "CAPACITY");
+          });
           return result;
         }
         s.admission();

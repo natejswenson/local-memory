@@ -10,6 +10,7 @@ import {
   identifier,
   keyValid,
   text,
+  secret,
   uuid,
   digest,
   iso,
@@ -104,6 +105,7 @@ export async function adapter(skill, command, q) {
     );
   if (command === "setup") {
     fields(q, ["source_path", "source_id"]);
+    check(!fs.existsSync(configPath), "ALREADY_INITIALIZED");
     const registration = request(
       "register",
       { skill_id: skill, keys: VOCABULARY[skill], capture: true },
@@ -123,7 +125,6 @@ export async function adapter(skill, command, q) {
       );
       check(source.ok, source.error?.code);
     }
-    check(!fs.existsSync(configPath), "ALREADY_INITIALIZED");
     atomic(
       configPath,
       JSON.stringify({
@@ -235,7 +236,7 @@ export async function adapter(skill, command, q) {
           ...(found.record.mirror ? { mirror: found.record.mirror } : {}),
         },
         selection_token: q.selection_token,
-        idempotency_key: "share-" + q.selection_token,
+        idempotency_key: "share-" + digest(q.id + q.expected_version + JSON.stringify(q.recipients) + q.selection_token),
       });
     }
     if (skill === "writing-peer") {
@@ -250,6 +251,7 @@ export async function adapter(skill, command, q) {
       check(q.source_event === undefined || identifier(q.source_event));
       const event = q.source_event || "event-" + uuid(),
         eventKey = "peer-event:" + event;
+      secret(event);
       for (const [key, value] of Object.entries(state.entries))
         if (
           key.startsWith("peer-event:") &&
@@ -261,19 +263,22 @@ export async function adapter(skill, command, q) {
         state.entries[eventKey] = { observed_at: iso() };
         atomic(configPath, JSON.stringify(state));
       }
-      const result = request("remember", {
-        idempotency_key: event,
-        record: {
-          key: q.key,
-          type,
-          content,
-          provenance: {
-            kind: type === "preference" ? "explicit_user" : "confirmed_fact",
-            skill_version: "1.0.0",
-            source_ref: event,
-            observed_at: state.entries[eventKey].observed_at,
-          },
+      const record = {
+        key: q.key,
+        type,
+        content,
+        provenance: {
+          kind: q.correction === true ? "explicit_correction" : type === "preference" ? "explicit_user" : "confirmed_fact",
+          skill_version: "1.0.0",
+          source_ref: event,
+          observed_at: state.entries[eventKey].observed_at,
         },
+      };
+      if (q.correction === true)
+        check(typeof q.id === "string" && Number.isInteger(q.expected_version));
+      const result = request(q.correction === true ? "update" : "remember", {
+        idempotency_key: event,
+        ...(q.correction === true ? { id: q.id, expected_version: q.expected_version, patch: record } : { record }),
       });
       return { ...result, source_event: event };
     }
@@ -289,6 +294,11 @@ export async function adapter(skill, command, q) {
     const slot = caller.project_id + "\0" + (q.key || q.selected_keys?.[0]);
     let entry = state.entries[slot];
     let content, sourceEvent, observed, revision;
+    if (q.op === "reconcile" && entry && !entry.suppressed &&
+        digest(fs.readFileSync(source.path)) !== entry.revision) {
+      check(q.selected_keys?.length === 1 && q.confirmed === true && typeof q.content === "string", "SOURCE_STALE");
+      q = { ...q, op: "capture", key: q.selected_keys[0], durable: true, correction: true };
+    }
     if (q.op === "capture") {
       check(q.durable === true && VOCABULARY[skill].includes(q.key));
       content = text(q.content);
@@ -301,6 +311,7 @@ export async function adapter(skill, command, q) {
         project_id: caller.project_id,
         content,
         observed_at: observed,
+        kind: q.correction === true || entry?.id ? "explicit_correction" : "explicit_user",
       };
       const next =
         original +
@@ -323,6 +334,7 @@ export async function adapter(skill, command, q) {
         pending: true,
         suppressed: false,
         revision,
+        kind: marker.kind,
       };
       state.entries[slot] = entry;
       atomic(configPath, JSON.stringify(state));
@@ -336,6 +348,7 @@ export async function adapter(skill, command, q) {
       if (!entry || entry.suppressed)
         return { ok: true, memory: "suppressed", source_retained: true };
       const body = fs.readFileSync(source.path, "utf8");
+      check(digest(body) === entry.revision, "SOURCE_STALE");
       const markers = [
         ...body.matchAll(/<!-- local-memory-preference (.+) -->/g),
       ]
@@ -366,8 +379,12 @@ export async function adapter(skill, command, q) {
           memory: "pending",
           error: existing.error,
         };
-      else if (!entry.pending_operation)
-        entry.version = existing.record.version;
+      else {
+        if (q.op === "reconcile" && !entry.pending &&
+            existing.record.mirror?.revision === revision)
+          return { ok: true, id: existing.record.id, version: existing.record.version, memory: "synced", source_retained: true };
+        if (!entry.pending_operation) entry.version = existing.record.version;
+      }
     }
     const mirror = { source_id: state.source_id, event: sourceEvent, revision };
     const record = {
@@ -375,12 +392,13 @@ export async function adapter(skill, command, q) {
       key: entry.key,
       content,
       provenance: {
-        kind: entry.id ? "explicit_correction" : "explicit_user",
+        kind: entry.kind ?? "explicit_user",
         skill_version: "1.0.0",
         source_ref: sourceEvent,
         observed_at: observed,
       },
       mirror,
+      review_after: new Date(Date.parse(observed) + 180 * 86400000).toISOString(),
     };
     const op =
       entry.pending_operation && entry.pending_revision === revision

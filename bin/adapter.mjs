@@ -11,8 +11,13 @@ const child = spawn(
     process.argv[2],
     process.argv[3],
   ],
-  { stdio: ["pipe", "pipe", "pipe"], env: process.env },
+  { stdio: ["pipe", "pipe", "pipe"], env: process.env, detached: true },
 );
+const killTree = () => {
+  try { process.kill(-child.pid, "SIGKILL"); } catch (e) {
+    if (e.code !== "ESRCH") throw e;
+  }
+};
 let output = "",
   inputBytes = 0,
   finished = false;
@@ -25,7 +30,7 @@ const finish = (value, code) => {
   process.exitCode = code;
 };
 const timer = setTimeout(() => {
-  child.kill("SIGKILL");
+  killTree();
   finish(
     JSON.stringify({
       ok: false,
@@ -39,10 +44,11 @@ const timer = setTimeout(() => {
     3,
   );
 }, 4800);
+child.stdout.setEncoding("utf8");
 child.stdout.on("data", (b) => {
   output += b;
   if (Buffer.byteLength(output) > 300000) {
-    child.kill("SIGKILL");
+    killTree();
     finish(
       JSON.stringify({
         ok: false,
@@ -61,7 +67,7 @@ child.stdin.on("error", () => {});
 process.stdin.on("data", (b) => {
   inputBytes += b.length;
   if (inputBytes > 16384) {
-    child.kill("SIGKILL");
+    killTree();
     finish(
       JSON.stringify({
         ok: false,
@@ -107,6 +113,6 @@ child.on("close", (code) => {
 
 for (const signal of ["SIGTERM", "SIGINT"])
   process.on(signal, () => {
-    child.kill("SIGKILL");
+    killTree();
     process.exit(3);
   });

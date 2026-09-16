@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { spawnSync } from "node:child_process";
+import { spawnSync, spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 function fixture(t) {
@@ -497,4 +497,46 @@ test("public ghostwriter adapter saves source before mirroring and suppresses fo
     "suppressed",
   );
   assert.equal(adapter("disable", {}).source_retained, true);
+});
+
+test("review fixes reject malformed recall, recipients and secret provenance; accept patch", (t) => {
+  const f = fixture(t); f.init();
+  for (const query of ["", " "]) assert.equal(f.raw("recall", { query }).error.code, "INVALID_INPUT");
+  for (const share_with of [{}, 42, null]) assert.equal(f.raw("remember", { idempotency_key: "bad-share", record: { ...f.input(), share_with } }).error.code, "INVALID_INPUT");
+  for (const field of ["source_ref", "skill_version"]) {
+    const record = f.input(); record.provenance[field] = "sk-abcdefghijklmnopqrstuv";
+    const r = f.raw("remember", { idempotency_key: "secret", record });
+    assert.equal(r.error.code, "SECRET_REJECTED");
+    assert.ok(!JSON.stringify(r).includes(record.provenance[field]));
+  }
+  const r = f.remember();
+  assert.equal(f.good("update", { id: r.id, expected_version: 1, idempotency_key: "patch", patch: { content: "One hashtag", provenance: f.input("", "explicit_correction").provenance } }).version, 2);
+  const denied = { id: r.id, expected_version: 2, idempotency_key: "denied", skill: "other" };
+  assert.equal(f.raw("forget", denied).error.code, "NOT_FOUND");
+  f.good("forget", { id: r.id, expected_version: 2, idempotency_key: "owner-forget" });
+  assert.equal(f.raw("forget", denied).error.code, "NOT_FOUND");
+});
+
+test("UTF-8 survives split stdin chunks in CLI and adapter", async (t) => {
+  const f = fixture(t); f.init();
+  async function split(args, q) {
+    const data = Buffer.from(JSON.stringify(q));
+    const splitAt = data.indexOf(Buffer.from("é")) + 1;
+    const child = spawn(process.execPath, args, { env: { ...process.env, LOCAL_MEMORY_HOME: f.home }, stdio: ["pipe", "pipe", "pipe"] });
+    const chunks = [];
+    child.stdout.on("data", (b) => chunks.push(b));
+    const done = new Promise((resolve, reject) => { child.on("error", reject); child.on("close", () => resolve(JSON.parse(Buffer.concat(chunks).toString("utf8")))); });
+    child.stdin.write(data.subarray(0, splitAt));
+    await new Promise((resolve) => setTimeout(resolve, 100));
+    child.stdin.end(data.subarray(splitAt));
+    return done;
+  }
+  const r = await split([path.join(root, "bin/local-memory.mjs"), "request"], { protocol: 1, op: "remember", request_id: "utf", idempotency_key: "utf", caller: f.identity("ghostwriter", "prj-harbor"), record: f.input("café") });
+  assert.equal(r.ok, true);
+  assert.equal(f.good("show", { id: r.id }).record.content, "café");
+  const exe = path.join(root, "bin/adapter.mjs");
+  assert.equal(JSON.parse(spawnSync(process.execPath, [exe, "writing-peer", "setup"], { input: "{}", encoding: "utf8", env: { ...process.env, LOCAL_MEMORY_HOME: f.home } }).stdout).ok, true);
+  const peer = await split([exe, "writing-peer", "request"], { op: "capture", key: "writing.hashtags", content: "café", durable: true });
+  assert.equal(peer.ok, true);
+  assert.equal(f.good("show", { id: peer.id }, true).record.content, "café");
 });

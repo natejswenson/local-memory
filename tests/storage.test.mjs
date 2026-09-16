@@ -405,6 +405,7 @@ test("WAL pressure refuses captures at 64 MiB but permits recall and deletion", 
       }).error.code,
       "CAPACITY",
     );
+    assert.equal(f.raw("remember", { idempotency_key: "duplicate-pressure", record: f.input() }).error.code, "CAPACITY");
     assert.equal(
       f.good("forget", {
         id: r.id,
@@ -501,4 +502,25 @@ test("supervisor enforces the overall foreground deadline and releases killed lo
   assert.equal(failed.error.code, "BUSY");
   assert.ok(Date.now() - start < 5500);
   assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).ok, true);
+});
+
+test("forget removes abandoned restore staging and sidecars", (t) => {
+  const f = fixture(t); f.init();
+  const r = f.remember("Staging deletion sentinel");
+  const snapshot = f.good("backup", {}, true).snapshot;
+  f.raw("restore", { snapshot }, true, { LOCAL_MEMORY_KILL_POINT: "restore-copied" });
+  assert.ok(fs.existsSync(path.join(f.home, "restore.sqlite3")));
+  f.good("forget", { id: r.id, expected_version: 1, idempotency_key: "remove-staging" });
+  for (const suffix of ["", "-wal", "-shm", "-journal"]) assert.equal(fs.existsSync(path.join(f.home, "restore.sqlite3" + suffix)), false);
+});
+
+test("deduplicated receipt writes honor opted-in backup failure", (t) => {
+  const f = fixture(t); f.init(); f.remember();
+  const p = path.join(f.home, "identity.json");
+  const identity = JSON.parse(fs.readFileSync(p)); identity.backups = true;
+  fs.writeFileSync(p, JSON.stringify(identity));
+  const request = { idempotency_key: "duplicate-backup", record: f.input() };
+  assert.equal(f.raw("remember", request, false, { LOCAL_MEMORY_FAIL_POINT: "backup-validated" }).error.code, "STORAGE_UNAVAILABLE");
+  assert.equal(f.good("remember", request).deduplicated, true);
+  assert.ok(fs.readdirSync(path.join(f.home, "backups")).some((name) => name.endsWith(".json")));
 });

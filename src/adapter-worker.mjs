@@ -1,6 +1,7 @@
 import { adapter } from "../adapters/client.mjs";
 import { MemoryError } from "../src/validation.mjs";
 process.umask(0o077);
+process.stdin.setEncoding("utf8");
 let input = "";
 try {
   for await (const b of process.stdin) {

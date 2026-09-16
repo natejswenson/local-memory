@@ -494,6 +494,11 @@ export class Store {
         }
         syncDir(this.p(dir));
       }
+      for (const suffix of ["", "-wal", "-shm", "-journal"]) {
+        const candidate = this.p("restore.sqlite3" + suffix);
+        if (exists(candidate)) { safe(candidate); fs.rmSync(candidate); }
+      }
+      syncDir(this.home);
       point("copies-purged");
       this.journal.exec("BEGIN IMMEDIATE");
       for (const { seq } of pending)

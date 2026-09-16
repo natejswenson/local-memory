@@ -1,5 +1,6 @@
 import { execute } from "./engine.mjs";
 import { MemoryError, identifier } from "./validation.mjs";
+process.stdin.setEncoding("utf8");
 let input = "";
 for await (const chunk of process.stdin) input += chunk;
 let q;

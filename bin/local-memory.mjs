@@ -51,6 +51,7 @@ const timer = setTimeout(() => {
     3,
   );
 }, 4800);
+child.stdout.setEncoding("utf8");
 child.stdout.on("data", (b) => {
   output += b;
   if (Buffer.byteLength(output) > 300000) {

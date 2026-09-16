@@ -72,15 +72,18 @@ test("source first: corrections, private defaults, revision freshness, suppressi
     }).version,
     2,
   );
-  fs.appendFileSync(f.source, "\nManual source edit\n");
+  fs.appendFileSync(f.source, "\nUse one relevant hashtag\n");
   assert.equal(
     f.run("request", { op: "recall", keys: ["writing.hashtags"] }).context
       .records.length,
     0,
   );
+  assert.equal(f.run("request", { op: "reconcile", selected_keys: ["writing.hashtags"] }).error.code, "SOURCE_STALE");
   const reconciled = f.run("request", {
     op: "reconcile",
     selected_keys: ["writing.hashtags"],
+    confirmed: true,
+    content: "Use one relevant hashtag",
   });
   assert.equal(reconciled.memory, "synced");
   assert.equal(
@@ -378,4 +381,45 @@ test("second adapter reuses the observed event timestamp when replaying a lost a
   const replay = f.run("request", q, "writing-peer");
   assert.equal(replay.ok, true, JSON.stringify(replay));
   assert.equal(replay.version, 1);
+});
+
+test("review fixes: repeat setup, reconciliation provenance and renewal, peer correction", (t) => {
+  const f = setup(t);
+  const before = fs.readFileSync(path.join(f.home, "identity.json"), "utf8");
+  assert.equal(f.run("setup", { source_id: "voice", source_path: f.source + ".other" }).error.code, "ALREADY_INITIALIZED");
+  assert.equal(fs.readFileSync(path.join(f.home, "identity.json"), "utf8"), before);
+  const first = f.run("request", { op: "capture", key: "writing.hashtags", content: "Avoid hashtags", durable: true });
+  for (let i = 0; i < 2; i++) assert.equal(f.run("request", { op: "reconcile", selected_keys: ["writing.hashtags"] }).version, first.version);
+  assert.equal(f.good("show", { id: first.id }).record.provenance.kind, "explicit_user");
+  const future = { LOCAL_MEMORY_TEST_NOW: new Date(Date.now() + 181 * 86400000).toISOString() };
+  const corrected = f.run("request", { op: "capture", key: "writing.hashtags", content: "One hashtag", durable: true, correction: true }, "ghostwriter", future);
+  assert.equal(corrected.version, 2);
+  assert.equal(f.run("request", { op: "recall", keys: ["writing.hashtags"] }, "ghostwriter", future).context.records[0].content, "One hashtag");
+  const q = { op: "capture", key: "project.acronym", type: "fact", content: "HBR means Harbor", durable: true, confirmed: true, source_event: "first" };
+  const peer = f.run("request", q, "writing-peer");
+  const update = { ...q, content: "HBR means Harbor Bay", correction: true, id: peer.id, expected_version: peer.version, source_event: "second" };
+  assert.equal(f.run("request", update, "writing-peer").version, 2);
+  assert.equal(f.run("request", { ...update, source_event: "third" }, "writing-peer").error.code, "VERSION_CONFLICT");
+});
+
+test("sharing revocation survives stale and unreadable sources", (t) => {
+  const f = setup(t);
+  const r = f.run("request", { op: "capture", key: "writing.hashtags", content: "Avoid hashtags", durable: true, correction: true });
+  assert.equal(f.good("show", { id: r.id }).record.provenance.kind, "explicit_correction");
+  const selection = f.good("selection", { id: r.id, expected_version: 1, recipients: ["writing-peer"] }, true);
+  assert.equal(f.run("request", { op: "share", id: r.id, expected_version: 1, recipients: ["writing-peer"], selection_token: selection.selection_token }).version, 2);
+  fs.renameSync(f.source, f.source + ".hold");
+  assert.equal(f.run("request", { op: "share", id: r.id, expected_version: 2, recipients: [], selection_token: "" }).version, 3);
+  assert.equal(f.good("update", { id: r.id, expected_version: 3, idempotency_key: "management-revoke", patch: { share_with: [] } }, true).version, 4);
+  fs.renameSync(f.source + ".hold", f.source);
+  assert.equal(f.run("request", { op: "recall", keys: ["writing.hashtags"] }, "writing-peer").context.records.length, 0);
+});
+
+test("adapter deadline releases descendant engine locks", (t) => {
+  const f = setup(t);
+  const result = f.run("request", { op: "capture", key: "writing.hashtags", content: "Delayed write", durable: true }, "ghostwriter", { LOCAL_MEMORY_FAIL_POINT: "foreground-timeout" });
+  assert.equal(result.ok, false);
+  const started = Date.now();
+  assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).context.records.length, 0);
+  assert.ok(Date.now() - started < 800);
 });
