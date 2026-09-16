@@ -540,3 +540,16 @@ test("UTF-8 survives split stdin chunks in CLI and adapter", async (t) => {
   assert.equal(peer.ok, true);
   assert.equal(f.good("show", { id: peer.id }, true).record.content, "café");
 });
+
+test("deleted owner retries with a new mutation key remain scoped to the original receipt", (t) => {
+  const f = fixture(t); f.init();
+  const r = f.remember();
+  f.good("forget", { id: r.id, expected_version: 1, idempotency_key: "first-delete" });
+  assert.equal(f.good("forget", { id: r.id, expected_version: 1, idempotency_key: "retry-delete" }).deleted, true);
+  assert.equal(f.raw("forget", {
+    id: r.id, expected_version: 1, idempotency_key: "other-delete", skill: "other",
+  }).error.code, "NOT_FOUND");
+  assert.equal(f.raw("forget", {
+    id: r.id, expected_version: 1, idempotency_key: "project-delete", project: null,
+  }).error.code, "NOT_FOUND");
+});

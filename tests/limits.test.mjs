@@ -131,7 +131,7 @@ test("full receipt capacity still permits forgetting live content", (t) => {
   assert.equal(f.raw("show", { id: r.id }).error.code, "NOT_FOUND");
   assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).context.records.length, 0);
   const after = new DatabaseSync(path.join(f.home, "memory.sqlite3"));
-  assert.equal(after.prepare("SELECT count(*) n FROM receipts").get().n, 100000);
+  assert.equal(after.prepare("SELECT count(*) n FROM receipts").get().n, 100001);
   after.close();
 });
 

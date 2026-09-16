@@ -22,20 +22,34 @@ checks. Atomic metadata writes fsync the file, rename, then fsync the directory.
 
 ## Deletion
 
-1. Under the maintenance lock, insert the unique ID and monotonic sequence into
+1. Under the maintenance lock, validate owner scope and expected version, then
+   commit the first content-free deletion receipt to the live database. Reuse an
+   unexpired reservation for that ID across pre-intent retries without changing
+   its original scope, key, digest or deadline. Receipt failure stops before
+   intent; an uncommitted/failed deletion is never acknowledged. The ordinary
+   100,000-receipt admission threshold counts first-delete receipts too. Only
+   first deletes use the additional 10,000 slots, bounded by live-record capacity.
+2. Insert the unique ID and monotonic sequence into
    `deletions.sqlite3`. It contains only store identity and content-free
    `(sequence, id, complete)` entries, with no content/owner/source/recipients.
 The committed journal ID itself is the permanent tombstone, outside live-store
 capacity.
 
-2. Commit deletion from live rows/FTS plus the content-free receipt and remove
-   sharing selections. Startup replays all incomplete intents before reads.
-3. Purge all managed backup and quarantine files; fsync those directories.
-4. Commit `complete` in the deletion journal. Only then acknowledge logical
+3. Commit deletion from live rows/FTS and remove sharing selections. Startup
+   replays all incomplete intents before reads.
+4. Purge all managed backup and quarantine files; fsync those directories.
+5. Commit `complete` in the deletion journal. Only then acknowledge logical
    deletion/managed-copy purge. If removal fails, `PURGE_PENDING` reports
    `active_deleted:true`, and no content reads proceed.
-5. Checkpoint and VACUUM when possible. A held WAL reader leaves physical cleanup
+6. Checkpoint and VACUUM when possible. A held WAL reader leaves physical cleanup
    pending without restoring eligibility. Future maintenance retries compaction.
+
+A new-key owner retry is authorized only by an unexpired original receipt in
+the same skill and caller project scope. Repeats allocate no receipt and never
+renew authorization. Management can recover without owner evidence. Missing
+legacy receipts and expired owner receipts fail closed with NOT_FOUND. Receipt
+lookup scans at most the bounded content-free table; a transaction-local in-memory
+index is discarded on commit or rollback. No disk schema is changed.
 
 The journal is independent of snapshots and is never replaced by restore.
 Missing/corrupt deletion state blocks operation. Tombstones and source adapter

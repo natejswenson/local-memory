@@ -130,10 +130,24 @@ Missing initialized DB, corruption, inaccessible storage and incompatible schema
 are separate errors. A failed save must never be described as remembered.
 
 Reuse the same mutation key after lost acknowledgment. Receipts retain a keyed
-payload digest and content-free result for 30 days (maximum 100,000 live
-receipts); they commit with the mutation. Different payload/same key conflicts.
+payload digest and content-free result for 30 days. Ordinary mutations stop at
+100,000 total unexpired receipts; 10,000 additional slots are reserved for first
+deletions (110,000 total). Ordinary receipts commit with their mutation; a first
+delete receipt commits before durable deletion intent. Different payload/same
+original key conflicts. Unexpired receipts are never evicted.
 Forgotten targets return `GONE` on old save replay. After the receipt window,
 inspect state before creating a new mutation key. Tombstones persist indefinitely.
+
+An authenticated deleting owner may repeat forget using a new key within the
+original receipt’s 30-day window, in the original skill and caller project scope.
+The exact 30-day boundary is included. Repeats and pre-intent retries reuse the
+first receipt without extending its deadline or allocating another slot. After
+expiry, or if an older store omitted that receipt, owner retries return
+NOT_FOUND; management can still recover. A legacy receipt in the ambiguous
+management namespace cannot authorize a new-key owner retry. New deletion
+receipts distinguish management from a skill with that name using a content-free
+flag; no permanent owner metadata is added to the deletion journal. The bounded
+receipt scan needs no schema change or implicit migration.
 
 ## Budgets and trust
 

@@ -88,3 +88,29 @@ publishing authority remain under their original owners.
 
 Controller base/fixed verification and hosted PR CI are independent subsequent
 checks. No local log is presented as a controller verification receipt.
+
+
+## Deletion-retry amendment checks
+
+The self-contained public regression includes a new-key owner retry followed by
+unrelated-owner and unrelated-project rejection. The unchanged new assertion
+fails against the pre-amendment implementation with NOT_FOUND.
+
+The forget-receipts suite covers the exact 30-day boundary, expiry and absent
+legacy evidence, original scope/key/deadline preservation, changed pre-intent
+retry keys and project scopes, receipt-write failure, transaction rollback,
+management namespace separation, pending purge, and six process-kill boundaries.
+Mixed capture/delete churn proves that first-delete receipts count toward the
+100,000 ordinary admission threshold. A synthetic 10,000-live-record/100,000-
+receipt fixture exercises production receipt, journal and purge primitives under
+the maintenance lock, retains all 110,000 receipts, preserves ordinary replay,
+and checks a public subprocess owner retry against the foreground deadline.
+This batch primitive check does not claim 10,000 separate CLI process timings.
+
+
+Observed amendment validation on the same Mac/runtime: full Node suite 82/82
+passed in 54.56 seconds; the 10,000-reservation/journal-purge segment took 37,278 ms,
+and the public owner retry at 110,000 receipts took 94 ms. The focused public
+regression passed 16/16. Python policy passed 9/9; actionlint was clean and
+zizmor reported no findings in its default offline mode. These local observations
+do not substitute for controller verification or PR CI.

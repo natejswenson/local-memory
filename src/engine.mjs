@@ -1,6 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
+import { replay, saveReceipt, deletionReceipt } from "./receipts.mjs";
 import {
   Store,
   location,
@@ -304,50 +304,6 @@ function consent(q, s, c, r, recipients) {
       sel.recipients === JSON.stringify(recipients),
     "PERMISSION_DENIED",
   );
-}
-function receiptKey(q, c) {
-  return stable([
-    c.management ? "management" : c.skill_id,
-    c.project_id,
-    q.idempotency_key,
-  ]);
-}
-function payloadHash(q, s) {
-  const payload = { ...q };
-  delete payload.request_id;
-  return crypto
-    .createHmac("sha256", s.identity.receipt_key)
-    .update(stable(payload))
-    .digest("hex");
-}
-function replay(q, s, c) {
-  const row = s.db
-    .prepare("SELECT * FROM receipts WHERE key=?")
-    .get(receiptKey(q, c));
-  if (!row || now() - row.created > 30 * 86400000) return null;
-  check(row.digest === payloadHash(q, s), "IDEMPOTENCY_CONFLICT");
-  const r = JSON.parse(row.result);
-  if (r.id && s.deleted(r.id)) {
-    if (q.op === "forget")
-      return { ...r, managed_backups: "purged", physical_cleanup: "pending" };
-    fail("GONE");
-  }
-  if (q.op === "forget") return null;
-  if (r.id) check(access(s.get(r.id), c, s, true), "NOT_FOUND");
-  return r;
-}
-function saveReceipt(q, s, c, result) {
-  s.db
-    .prepare("DELETE FROM receipts WHERE created<?")
-    .run(now() - 30 * 86400000);
-  if (s.db.prepare("SELECT count(*) n FROM receipts").get().n >= 100000) {
-    // Receipt admission must never prevent durable deletion.
-    if (q.op === "forget") return;
-    fail("CAPACITY");
-  }
-  s.db
-    .prepare("INSERT OR REPLACE INTO receipts VALUES (?,?,?,?)")
-    .run(receiptKey(q, c), payloadHash(q, s), JSON.stringify(result), now());
 }
 function inspection(r, s) {
   return {
@@ -725,11 +681,11 @@ export async function execute(q, { management = false } = {}) {
       return { physical_cleanup: s.cleanup(), deletion_sequence: s.sequence() };
     }
     if (MUTATIONS.has(q.op)) {
-      const prior = replay(q, s, c);
+      const prior = replay(q, s, c, (r) => access(r, c, s, true));
       if (prior) return prior;
       if (q.op === "forget") {
         const r = s.get(q.id);
-        if (c.management && s.deleted(q.id))
+        if (s.deleted(q.id) && (c.management || deletionReceipt(s, q.id, c)))
           return {
             id: q.id,
             deleted: true,
@@ -749,6 +705,7 @@ export async function execute(q, { management = false } = {}) {
         // Save scoped retry authorization before intent; replay only acknowledges it
         // once the durable deletion journal proves the deletion occurred.
         s.transaction(() => saveReceipt(q, s, c, result));
+        point("forget-receipt-durable");
         s.intent(r.id);
         s.replay();
         return { ...result, physical_cleanup: s.cleanup() };

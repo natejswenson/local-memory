@@ -348,6 +348,8 @@ export class Store {
     } catch (e) {
       if (this.db.isTransaction) this.db.exec("ROLLBACK");
       throw e;
+    } finally {
+      delete this.deletionReceiptCache;
     }
   }
   pruneBackups() {
