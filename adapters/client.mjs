@@ -43,6 +43,8 @@ export function call(
         env: process.env,
       },
     );
+    if (child.timedOut || child.error?.code === "ETIMEDOUT")
+      return { ok: false, error: { code: "BUSY", retryable: true } };
     try {
       result = JSON.parse(child.stdout);
     } catch {
@@ -51,6 +53,8 @@ export function call(
         error: { code: "STORAGE_UNAVAILABLE", retryable: false },
       };
     }
+    if (!result)
+      return { ok: false, error: { code: "STORAGE_UNAVAILABLE", retryable: false } };
     if (result.error?.code !== "BUSY" || attempt) return result;
     Atomics.wait(
       new Int32Array(new SharedArrayBuffer(4)),
@@ -355,13 +359,17 @@ export async function adapter(skill, command, q) {
         return { ok: true, memory: "suppressed", source_retained: true };
       const body = fs.readFileSync(source.path, "utf8");
       check(digest(body) === entry.revision, "SOURCE_STALE");
-      const markers = [
-        ...body.matchAll(/<!-- local-memory-preference (.+) -->/g),
-      ]
-        .map((m) => JSON.parse(m[1]))
-        .filter((m) => m.event === entry.event);
-      check(markers.length === 1, "SOURCE_STALE");
-      const marker = markers[0];
+      const markers = [];
+      for (const m of body.matchAll(/<!-- local-memory-preference (.+) -->/g)) {
+        try {
+          markers.push(JSON.parse(m[1]));
+        } catch {
+          check(false, "SOURCE_STALE");
+        }
+      }
+      const matchingMarkers = markers.filter((m) => m.event === entry.event);
+      check(matchingMarkers.length === 1, "SOURCE_STALE");
+      const marker = matchingMarkers[0];
       content = text(marker.content);
       sourceEvent = marker.event;
       observed = marker.observed_at;
