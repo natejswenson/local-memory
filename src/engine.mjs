@@ -18,6 +18,7 @@ import {
   fields,
   text,
   provenance,
+  secret,
   identifier,
   keyValid,
   iso,
@@ -269,6 +270,7 @@ function record(input, c, s, old) {
         identifier(data.mirror.event) &&
         /^[a-f0-9]{64}$/.test(data.mirror.revision),
     );
+    for (const value of Object.values(data.mirror)) secret(value);
     if (!revocation(input, old))
       check(sourceFresh({ ...data, owner_skill: owner }, s), "SOURCE_STALE");
   }
@@ -609,23 +611,28 @@ export async function execute(q, { management = false } = {}) {
       check(s.identity.skills[owner]);
       check(project === null || s.identity.projects[project]);
       const token = uuid();
-      s.db.prepare("DELETE FROM selections WHERE expires<=?").run(now());
-      check(
-        s.db.prepare("SELECT count(*) n FROM selections").get().n < 10000,
-        "CAPACITY",
-      );
-      s.db
-        .prepare("INSERT INTO selections VALUES (?,?,?,?,?,?,?)")
-        .run(
-          token,
-          r?.id ?? null,
-          r?.version ?? null,
-          JSON.stringify([...new Set(q.recipients)].sort()),
-          owner,
-          project,
-          now() + 5 * 60000,
+      check(s.pressure().wal_bytes < LIMITS.walHard, "CAPACITY");
+      return s.transaction(() => {
+        s.db.prepare("DELETE FROM selections WHERE expires<=?").run(now());
+        check(
+          s.db.prepare("SELECT count(*) n FROM selections").get().n < 10000,
+          "CAPACITY",
         );
-      return { selection_token: token, expires_in_seconds: 300 };
+        s.db
+          .prepare("INSERT INTO selections VALUES (?,?,?,?,?,?,?)")
+          .run(
+            token,
+            r?.id ?? null,
+            r?.version ?? null,
+            JSON.stringify([...new Set(q.recipients)].sort()),
+            owner,
+            project,
+            now() + 5 * 60000,
+          );
+        check(s.db.prepare("PRAGMA page_count").get().page_count *
+          s.db.prepare("PRAGMA page_size").get().page_size <= LIMITS.database, "CAPACITY");
+        return { selection_token: token, expires_in_seconds: 300 };
+      });
     }
     if (q.op === "recall") return recall(q, s, c);
     if (q.op === "show") {
@@ -748,7 +755,7 @@ export async function execute(q, { management = false } = {}) {
             ]),
           };
       check(bytes({ ...r, content: undefined }) <= LIMITS.metadata);
-      if (!old || stable(r.share_with) !== stable(old.share_with))
+      if (!old || r.share_with.some((recipient) => !old.share_with.includes(recipient)))
         consent(q, s, c, r, r.share_with);
       if (!old) {
         const dupe = s.db

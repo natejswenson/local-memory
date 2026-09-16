@@ -113,7 +113,7 @@ test("management and a skill named management cannot borrow each other's delete 
   const own = f.remember("Own", { skill: "management", project: null });
   f.good("forget", { ...request(own, "own-delete"), skill: "management", project: null });
   f.good("forget", { ...request(own, "own-retry"), skill: "management", project: null });
-  sql(f, (db) => db.exec("UPDATE receipts SET result=json_remove(result,'$._owner_retry') WHERE json_extract(result,'$.deleted')=1"));
+  sql(f, (db) => db.exec("UPDATE receipts SET key=json_remove(key,'$[3]'), result=json_remove(result,'$._owner_retry') WHERE json_extract(result,'$.deleted')=1"));
   assert.equal(f.raw("forget", { ...request(own, "ambiguous-legacy"), skill: "management", project: null }).error.code, "NOT_FOUND");
 });
 
@@ -194,3 +194,28 @@ test("transaction rollback discards the transient deletion reservation index", (
   f.good("forget", request(r, "finish-after-rollback"));
   f.good("forget", request(r, "owner-retry"));
 });
+
+
+test("management and skill management use independent exact-replay namespaces", (t) => {
+  const f = fixture(t); f.init();
+  f.good("register", { skill_id: "management", keys: ["writing.hashtags"], capture: true }, true);
+  const r = f.remember();
+  const envelope = { ...request(r), caller: f.identity("management", null) };
+  f.good("forget", envelope, true);
+  assert.equal(f.raw("forget", envelope).error.code, "NOT_FOUND");
+  const own = f.remember("Own", { skill: "management", project: null });
+  f.good("forget", { ...request(own), skill: "management", project: null });
+  f.good("forget", envelope, true);
+});
+
+test("restore preserves old request deletion suppression and owner retry receipts", (t) => {
+    const f = fixture(t); f.init();
+    const original = { idempotency_key: "original", record: f.input() };
+    const r = f.good("remember", original);
+    f.good("forget", request(r));
+    const snapshot = f.good("backup", {}, true).snapshot;
+    f.good("restore", { snapshot }, true);
+    assert.equal(f.raw("remember", original).error.code, "GONE");
+    f.good("forget", request(r, "retry-after-restore"));
+    assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).context.records.length, 0);
+  });

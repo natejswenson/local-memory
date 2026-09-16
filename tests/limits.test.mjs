@@ -252,3 +252,31 @@ test("credential-shaped JSON, PEM, bearer tokens and connection strings are reje
     assert.ok(!JSON.stringify(r).includes(content));
   }
 });
+
+
+test("selection writes roll back when their resulting database exceeds 100 MiB", (t) => {
+  const f = fixture(t); f.init();
+  const db = new DatabaseSync(path.join(f.home, "memory.sqlite3"));
+  try {
+    db.exec("CREATE TABLE selection_capacity_fixture (body BLOB); CREATE TRIGGER selection_growth AFTER INSERT ON selections BEGIN INSERT INTO selection_capacity_fixture VALUES(zeroblob(104857600)); END");
+    const r = f.raw("selection", { owner_skill: "ghostwriter", recipients: ["writing-peer"] }, true);
+    assert.equal(r.error.code, "CAPACITY");
+    assert.equal(db.prepare("SELECT count(*) n FROM selections").get().n, 0);
+    assert.equal(db.prepare("SELECT count(*) n FROM selection_capacity_fixture").get().n, 0);
+  } finally { db.close(); }
+});
+
+test("selection writes stop at the hard WAL limit with an external reader", (t) => {
+  const f = fixture(t); f.init();
+  const dbPath = path.join(f.home, "memory.sqlite3");
+  const writer = new DatabaseSync(dbPath), reader = new DatabaseSync(dbPath);
+  try {
+    writer.exec("PRAGMA wal_autocheckpoint=0; CREATE TABLE wal_capacity_fixture (body BLOB)");
+    reader.exec("BEGIN; SELECT * FROM wal_capacity_fixture");
+    writer.exec("INSERT INTO wal_capacity_fixture VALUES(zeroblob(68157440))");
+    assert.ok(fs.statSync(dbPath + "-wal").size > 64 * 1024 * 1024);
+    const r = f.raw("selection", { owner_skill: "ghostwriter", recipients: ["writing-peer"] }, true);
+    assert.equal(r.error.code, "CAPACITY");
+    assert.equal(writer.prepare("SELECT count(*) n FROM selections").get().n, 0);
+  } finally { reader.exec("ROLLBACK"); reader.close(); writer.close(); }
+});

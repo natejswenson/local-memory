@@ -18,7 +18,9 @@ try {
       ? e.code
       : e instanceof SyntaxError
         ? "INVALID_INPUT"
-        : "STORAGE_UNAVAILABLE";
+        : /locked|busy/i.test(e.message)
+          ? "BUSY"
+          : "STORAGE_UNAVAILABLE";
   console.log(
     JSON.stringify({
       ok: false,

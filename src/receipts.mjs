@@ -10,6 +10,7 @@ function receiptKey(q, c) {
     c.management ? "management" : c.skill_id,
     c.project_id,
     q.idempotency_key,
+    !!c.management,
   ]);
 }
 function payloadHash(q, s) {
@@ -49,14 +50,27 @@ export function deletionReceipt(s, id, c) {
     const result = JSON.parse(row.result);
     // Old management receipts and a skill literally named "management" shared
     // a key namespace. Ambiguous legacy evidence cannot authorize owner retries.
-    const owner = result._owner_retry === true ||
+    const owner = scope.length === 4 ? scope[3] === false :
+      result._owner_retry === true ||
       (result._owner_retry === undefined && scope[0] !== "management");
     return owner && scope[0] === c.skill_id && scope[1] === c.project_id;
   });
 }
 export function replay(q, s, c, canAccess) {
-  const row = s.db.prepare("SELECT * FROM receipts WHERE key=?")
+  let row = s.db.prepare("SELECT * FROM receipts WHERE key=?")
     .get(receiptKey(q, c));
+  if (!row) {
+    const legacy = s.db.prepare("SELECT * FROM receipts WHERE key=?")
+      .get(stable([c.management ? "management" : c.skill_id, c.project_id, q.idempotency_key]));
+    if (legacy) {
+      const owner = JSON.parse(legacy.result)._owner_retry;
+      if ((c.management || c.skill_id === "management") && owner === undefined &&
+          now() - legacy.created <= RECEIPT_WINDOW)
+        fail("IDEMPOTENCY_CONFLICT");
+      if (c.management ? owner === false : c.skill_id !== "management" || owner === true)
+        row = legacy;
+    }
+  }
   if (!row || now() - row.created > RECEIPT_WINDOW) return null;
   check(row.digest === payloadHash(q, s), "IDEMPOTENCY_CONFLICT");
   const r = publicResult(row);

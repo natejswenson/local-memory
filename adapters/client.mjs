@@ -139,6 +139,7 @@ export async function adapter(skill, command, q) {
   if (fs.existsSync(lockFile)) safe(lockFile);
   const lock = new DatabaseSync(lockFile, { timeout: 2000 });
   lock.exec("PRAGMA busy_timeout=2000; BEGIN EXCLUSIVE");
+  let sourceSaved = false;
   try {
     const state = json(configPath);
     if (command === "disable" || command === "enable") {
@@ -323,12 +324,6 @@ export async function adapter(skill, command, q) {
         JSON.stringify(marker) +
         " -->\n";
       check(Buffer.byteLength(next) <= 1024 * 1024, "CAPACITY");
-      point("source-write");
-      atomic(source.path, next);
-      check(
-        fs.readFileSync(source.path, "utf8") === next,
-        "STORAGE_UNAVAILABLE",
-      );
       revision = digest(next);
       entry = {
         event: sourceEvent,
@@ -341,7 +336,14 @@ export async function adapter(skill, command, q) {
         kind: marker.kind,
       };
       state.entries[slot] = entry;
+      // Persist the pending event before replacing the source so a crash cannot
+      // leave a saved correction without a reconciliation entry.
       atomic(configPath, JSON.stringify(state));
+      point("source-write");
+      atomic(source.path, next);
+      sourceSaved = true;
+      point("source-committed");
+      check(fs.readFileSync(source.path, "utf8") === next, "STORAGE_UNAVAILABLE");
       point("source-saved");
     } else {
       check(
@@ -437,6 +439,11 @@ export async function adapter(skill, command, q) {
       memory: r.ok ? "synced" : entry.suppressed ? "suppressed" : "pending",
       source_retained: true,
     };
+  } catch (error) {
+    if (!sourceSaved) throw error;
+    const code = /locked|busy/i.test(error.message) ? "BUSY" : "STORAGE_UNAVAILABLE";
+    return { ok: false, source_saved: true, memory: "pending",
+      error: { code, retryable: code === "BUSY" } };
   } finally {
     lock.exec("ROLLBACK");
     lock.close();

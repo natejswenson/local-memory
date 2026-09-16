@@ -553,3 +553,15 @@ test("deleted owner retries with a new mutation key remain scoped to the origina
     id: r.id, expected_version: 1, idempotency_key: "project-delete", project: null,
   }).error.code, "NOT_FOUND");
 });
+
+
+test("partial revocation needs no grant token for retained recipients", (t) => {
+  const f = fixture(t); f.init();
+  const grant = f.good("selection", { owner_skill: "ghostwriter", project_id: "prj-harbor", recipients: ["writing-peer", "other"] }, true);
+  const saved = f.good("remember", { idempotency_key: "shared", selection_token: grant.selection_token,
+    record: { ...f.input(), share_with: ["writing-peer", "other"] } });
+  f.good("update", { id: saved.id, expected_version: 1, idempotency_key: "remove-other", changes: { share_with: ["writing-peer"] } });
+  assert.equal(f.good("recall", { skill: "other", keys: ["writing.hashtags"] }).context.records.length, 0);
+  assert.equal(f.good("recall", { skill: "writing-peer", keys: ["writing.hashtags"] }).context.records.length, 1);
+  assert.equal(f.raw("update", { id: saved.id, expected_version: 2, idempotency_key: "add-other", changes: { share_with: ["writing-peer", "other"] } }).error.code, "PERMISSION_DENIED");
+});

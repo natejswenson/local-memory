@@ -2,6 +2,7 @@ import { DatabaseSync, backup } from "node:sqlite";
 import fs from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { RECEIPT_WINDOW, TOTAL_RECEIPTS } from "./receipts.mjs";
 import {
   check,
   fail,
@@ -619,8 +620,19 @@ export class Store {
           );
         }
       }
+      // Retain snapshot receipts and merge the current ledger before publication.
+      // An old request must still resolve to its original (possibly deleted) ID.
+      if (this.db) {
+        const insert = d.prepare("INSERT OR REPLACE INTO receipts VALUES (?,?,?,?)");
+        for (const row of this.db.prepare("SELECT * FROM receipts WHERE created>=?").all(now() - RECEIPT_WINDOW))
+          insert.run(row.key, row.digest, row.result, row.created);
+      }
+      d.prepare("DELETE FROM receipts WHERE created<?").run(now() - RECEIPT_WINDOW);
+      check(d.prepare("SELECT count(*) n FROM receipts").get().n <= TOTAL_RECEIPTS, "CAPACITY");
+      check(d.prepare("PRAGMA page_count").get().page_count *
+        d.prepare("PRAGMA page_size").get().page_size <= LIMITS.database, "CAPACITY");
       d.exec(
-        "DELETE FROM selections; DELETE FROM receipts; COMMIT; PRAGMA journal_mode=DELETE;",
+        "DELETE FROM selections; COMMIT; PRAGMA journal_mode=DELETE;",
       );
       integrity(d);
     } finally {

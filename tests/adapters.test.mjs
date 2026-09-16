@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { DatabaseSync } from "node:sqlite";
+import { digest } from "../src/validation.mjs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -431,3 +433,46 @@ test("adapter deadline releases descendant engine locks", (t) => {
   assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).context.records.length, 0);
   assert.ok(Date.now() - started < 800);
 });
+
+
+test("adapter SQLite contention reports retryable BUSY within its deadline", (t) => {
+  const f = setup(t);
+  const db = new DatabaseSync(path.join(f.home, "adapter-ghostwriter.lock.sqlite3"));
+  fs.chmodSync(path.join(f.home, "adapter-ghostwriter.lock.sqlite3"), 0o600);
+  try {
+    db.exec("BEGIN EXCLUSIVE");
+    const start = Date.now();
+    const r = f.run("request", { op: "recall", keys: ["writing.hashtags"] });
+    assert.equal(r.error.code, "BUSY");
+    assert.equal(r.error.retryable, true);
+    assert.ok(Date.now() - start < 5000);
+  } finally { db.exec("ROLLBACK"); db.close(); }
+});
+
+test("mirror identifiers reject secret-shaped values before persistence", (t) => {
+  const f = setup(t);
+  for (const field of ["event", "source_id"]) {
+    const mirror = { source_id: "voice", event: "event-safe", revision: digest(fs.readFileSync(f.source)) };
+    mirror[field] = "sk-abcdefghijklmnopqrstuv";
+    const r = f.raw("remember", { idempotency_key: "secret-" + field, record: { ...f.input(), mirror } });
+    assert.equal(r.error.code, "SECRET_REJECTED");
+    assert.equal(JSON.stringify(r).includes(mirror[field]), false);
+  }
+  assert.equal(f.good("list", {}, true).records.length, 0);
+});
+
+for (const fault of ["LOCAL_MEMORY_KILL_POINT", "LOCAL_MEMORY_FAIL_POINT"])
+  test("source commit boundary retains recoverable pending event: " + fault, (t) => {
+    const f = setup(t);
+    const r = f.run("request", { op: "capture", key: "writing.hashtags", content: "Avoid hashtags", durable: true },
+      "ghostwriter", { [fault]: "source-committed" });
+    assert.equal(r.ok, false);
+    if (fault === "LOCAL_MEMORY_FAIL_POINT") {
+      assert.equal(r.source_saved, true);
+      assert.equal(r.memory, "pending");
+    }
+    assert.match(fs.readFileSync(f.source, "utf8"), /Avoid hashtags/);
+    const recovered = f.run("request", { op: "reconcile", selected_keys: ["writing.hashtags"], confirmed: true, content: "Avoid hashtags" });
+    assert.equal(recovered.memory, "synced");
+    assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).context.records[0].content, "Avoid hashtags");
+  });
