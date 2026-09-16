@@ -20,12 +20,16 @@ status in the observed minimum runtime. No native third-party binding is loaded.
 | Environment | Observation | Support |
 | --- | --- | --- |
 | macOS arm64, Codex process tools, Homebrew Node 25.2.1 / loaded SQLite 3.53.1 | `codex-macos-arm64.json`; all probes passed | Supported local process/file access combination |
-| Claude Code 2.0.76 executable | Discovery/version observed; in-host invocation not yet observed | Unverified, not claimed supported |
+| Claude Code 2.0.76 | In-host smoke attempt exited 1 without a structured result; `claude-host.json` | Unavailable in tested sandbox; not claimed supported |
 | Codex CLI 0.154.0 standalone session | Discovery/version observed; only current Codex process tools exercised | Unverified separately |
+| macOS arm64 / stock Node 26.8.2 | `node-26.8.2-macos-arm64.json`; loaded SQLite 3.53.4, probe passed | Supported runtime on the tested local host |
 | Linux / Node 26.8.2 | Selected CI target; no hosted result yet | Unverified until CI passes |
 | Windows | POSIX permission and lock implementation not applicable | Unsupported in v1 implementation |
 | No process/file access, remote/network/synchronized storage | Cannot meet local durability contract | Unsupported |
 
-This is a compatibility result, not evidence that memory behavior exists yet.
-Storage defaults and executable distribution are implemented after this commit.
-The fixture is reproducible without network access or credentials.
+The initial probe was committed as `c4c3921` before core implementation. Later
+runtime and adapter evidence is recorded separately. `node scripts/host-smoke.mjs`
+passed through the current Codex process tools and tests real source-first capture,
+process restart, recall and forget. The tarball installation test validates
+executable discovery and data persistence across uninstall. No personal data was
+used. The synthetic fixtures run without network access or credentials.

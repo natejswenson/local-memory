@@ -1,0 +1,17 @@
+{
+  "node": "v26.8.2",
+  "executable": "/private/tmp/local-memory-issue-5-workspace/issueflow/ff748b2d352812b2ab50889e9df00763648e6bc9aeda719601feabd93f7c4b89/4b7590ab-2cc6-480a-9037-9065e35ab3a6/tmp/npm-cache/_npx/131005c554cfb1ac/node_modules/node/bin/node",
+  "platform": "darwin",
+  "arch": "arm64",
+  "build_sqlite": "3.53.4",
+  "linked_sqlite": "3.53.4",
+  "wal": true,
+  "full_sync": true,
+  "transaction": true,
+  "online_backup": true,
+  "integrity": true,
+  "fts5": true,
+  "scan": true,
+  "restart": true,
+  "permissions": "0700/0600"
+}
