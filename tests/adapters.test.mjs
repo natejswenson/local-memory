@@ -398,7 +398,12 @@ test("review fixes: repeat setup, reconciliation provenance and renewal, peer co
   const q = { op: "capture", key: "project.acronym", type: "fact", content: "HBR means Harbor", durable: true, confirmed: true, source_event: "first" };
   const peer = f.run("request", q, "writing-peer");
   const update = { ...q, content: "HBR means Harbor Bay", correction: true, id: peer.id, expected_version: peer.version, source_event: "second" };
-  assert.equal(f.run("request", update, "writing-peer").version, 2);
+  assert.equal(f.run("request", update, "writing-peer", future).version, 2);
+  assert.equal(f.run("request", { op: "recall", keys: [q.key] }, "writing-peer", future).context.records[0].content, update.content);
+  const pref = f.run("request", { ...q, key: "writing.hashtags", type: "preference", source_event: "preference" }, "writing-peer");
+  const correction = { ...q, key: "writing.hashtags", type: "preference", correction: true, id: pref.id, expected_version: pref.version, source_event: "preference-correction" };
+  assert.equal(f.run("request", correction, "writing-peer", future).version, 2);
+  assert.equal(f.run("request", { op: "recall", keys: [correction.key] }, "writing-peer", future).context.records[0].id, pref.id);
   assert.equal(f.run("request", { ...update, source_event: "third" }, "writing-peer").error.code, "VERSION_CONFLICT");
 });
 
@@ -409,6 +414,9 @@ test("sharing revocation survives stale and unreadable sources", (t) => {
   const selection = f.good("selection", { id: r.id, expected_version: 1, recipients: ["writing-peer"] }, true);
   assert.equal(f.run("request", { op: "share", id: r.id, expected_version: 1, recipients: ["writing-peer"], selection_token: selection.selection_token }).version, 2);
   fs.renameSync(f.source, f.source + ".hold");
+  for (const mirror of [null, false])
+    assert.equal(f.raw("update", { id: r.id, expected_version: 2, idempotency_key: "detach-" + mirror, patch: { share_with: [], mirror } }, true).error.code, "SOURCE_REQUIRED");
+  assert.equal(f.run("request", { op: "recall", keys: ["writing.hashtags"] }).context.records.length, 0);
   assert.equal(f.run("request", { op: "share", id: r.id, expected_version: 2, recipients: [], selection_token: "" }).version, 3);
   assert.equal(f.good("update", { id: r.id, expected_version: 3, idempotency_key: "management-revoke", patch: { share_with: [] } }, true).version, 4);
   fs.renameSync(f.source + ".hold", f.source);

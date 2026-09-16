@@ -274,8 +274,12 @@ export async function adapter(skill, command, q) {
           observed_at: state.entries[eventKey].observed_at,
         },
       };
-      if (q.correction === true)
+      if (q.correction === true) {
         check(typeof q.id === "string" && Number.isInteger(q.expected_version));
+        const observed = Date.parse(record.provenance.observed_at);
+        record.review_after = new Date(observed + (type === "preference" ? 180 : 30) * 86400000).toISOString();
+        record.expires_at = type === "preference" ? null : new Date(observed + 90 * 86400000).toISOString();
+      }
       const result = request(q.correction === true ? "update" : "remember", {
         idempotency_key: event,
         ...(q.correction === true ? { id: q.id, expected_version: q.expected_version, patch: record } : { record }),

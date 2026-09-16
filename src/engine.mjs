@@ -171,7 +171,7 @@ function active(r, s) {
 function revocation(input, old) {
   return old && input && Object.keys(input).every((k) => k === "share_with" || k === "mirror") &&
     Array.isArray(input.share_with) && input.share_with.every((id) => old.share_with.includes(id)) &&
-    (!input.mirror || stable(input.mirror) === stable(old.mirror));
+    (!Object.hasOwn(input, "mirror") || stable(input.mirror) === stable(old.mirror));
 }
 function record(input, c, s, old) {
   fields(
@@ -340,10 +340,11 @@ function saveReceipt(q, s, c, result) {
   s.db
     .prepare("DELETE FROM receipts WHERE created<?")
     .run(now() - 30 * 86400000);
-  check(
-    s.db.prepare("SELECT count(*) n FROM receipts").get().n < 100000,
-    "CAPACITY",
-  );
+  if (s.db.prepare("SELECT count(*) n FROM receipts").get().n >= 100000) {
+    // Receipt admission must never prevent durable deletion.
+    if (q.op === "forget") return;
+    fail("CAPACITY");
+  }
   s.db
     .prepare("INSERT OR REPLACE INTO receipts VALUES (?,?,?,?)")
     .run(receiptKey(q, c), payloadHash(q, s), JSON.stringify(result), now());

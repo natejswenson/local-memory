@@ -121,6 +121,20 @@ test("backup rotation and failure leave validated prior snapshots intact", (t) =
   );
   assert.deepEqual(fs.readdirSync(dir).sort(), before);
 });
+test("full receipt capacity still permits forgetting live content", (t) => {
+  const f = fixture(t); f.init();
+  const r = f.remember();
+  const db = new DatabaseSync(path.join(f.home, "memory.sqlite3"));
+  db.prepare("WITH RECURSIVE n(x) AS (VALUES(1) UNION ALL SELECT x+1 FROM n WHERE x<99999) INSERT INTO receipts SELECT 'full-'||x,'digest','{}',? FROM n").run(Date.now());
+  db.close();
+  assert.equal(f.good("forget", { id: r.id, expected_version: 1, idempotency_key: "forget-full" }).deleted, true);
+  assert.equal(f.raw("show", { id: r.id }).error.code, "NOT_FOUND");
+  assert.equal(f.good("recall", { keys: ["writing.hashtags"] }).context.records.length, 0);
+  const after = new DatabaseSync(path.join(f.home, "memory.sqlite3"));
+  assert.equal(after.prepare("SELECT count(*) n FROM receipts").get().n, 100000);
+  after.close();
+});
+
 test("receipts are content-free and expire after 30 days; tombstones do not", (t) => {
   const f = fixture(t);
   f.init();
