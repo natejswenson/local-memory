@@ -7,7 +7,11 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 function fixture(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "memory-v1-"));
+  // macOS may expose its temporary directory through /var or /tmp symlinks.
+  // Fixtures use canonical roots; production storage still rejects symlinks.
+  const dir = fs.mkdtempSync(
+    path.join(fs.realpathSync(os.tmpdir()), "memory-v1-"),
+  );
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const home = path.join(dir, "store");
   let n = 0;

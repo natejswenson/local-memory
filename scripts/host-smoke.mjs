@@ -5,7 +5,9 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
-const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "memory-host-smoke-"));
+const tmp = fs.mkdtempSync(
+  path.join(fs.realpathSync(os.tmpdir()), "memory-host-smoke-"),
+);
 try {
   const env = { ...process.env, LOCAL_MEMORY_HOME: path.join(tmp, "store") };
   const call = (file, args, q) => {

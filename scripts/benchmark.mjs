@@ -9,7 +9,9 @@ import assert from "node:assert/strict";
 import { performance } from "node:perf_hooks";
 import { seed } from "../tests/helpers/synthetic.mjs";
 const root = fileURLToPath(new URL("..", import.meta.url));
-const temp = fs.mkdtempSync(path.join(os.tmpdir(), "memory-benchmark-")),
+const temp = fs.mkdtempSync(
+    path.join(fs.realpathSync(os.tmpdir()), "memory-benchmark-"),
+  ),
   home = path.join(temp, "store");
 let seq = 0;
 const call = (op, data = {}, manage = false) => {

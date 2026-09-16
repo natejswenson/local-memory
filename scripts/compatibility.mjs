@@ -6,7 +6,9 @@ import path from "node:path";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 process.umask(0o077);
-const root = fs.mkdtempSync(path.join(os.tmpdir(), "memory-spike-"));
+const root = fs.mkdtempSync(
+  path.join(fs.realpathSync(os.tmpdir()), "memory-spike-"),
+);
 try {
   const file = path.join(root, "probe.sqlite3");
   const db = new DatabaseSync(file);

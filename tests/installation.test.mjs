@@ -7,7 +7,9 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 const root = fileURLToPath(new URL("..", import.meta.url));
 test("packed executable discovery, separate data directory and uninstall persistence", (t) => {
-  const temp = fs.mkdtempSync(path.join(os.tmpdir(), "memory-install-"));
+  const temp = fs.mkdtempSync(
+    path.join(fs.realpathSync(os.tmpdir()), "memory-install-"),
+  );
   t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
   const env = {
     ...process.env,

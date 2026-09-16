@@ -5,6 +5,10 @@ Input: the approved design at commit
 `8a3c23ae7fbef4e0466247713394a2a8fd24468b52d574d716531529f401ce0a`.
 Tests use isolated synthetic stores and actual JSON CLI subprocesses. Capacity
 fixtures seed internal tables solely to avoid exposing a bulk-import API.
+Temporary fixture roots are canonicalized before constructing store, source and
+project paths: macOS can expose its temporary directory through a symlink.
+Runtime symlink rejection remains enforced; a storage test verifies rejection
+both before initialization and after initializing through the canonical path.
 
 | Pinned validation row | Automated evidence |
 | --- | --- |
@@ -74,7 +78,8 @@ publishing authority remain under their original owners.
 
 | Check | Observed result |
 | --- | --- |
-| Full Node suite, Homebrew Node 25.2.1 / SQLite 3.53.1 | 57 passed, zero failures; about 28 seconds |
+| Full Node suite, Homebrew Node 25.2.1 / SQLite 3.53.1 | 58 passed, zero failures; about 29 seconds |
+| Regression with a symlink alias of the prepared temporary root | 13 passed; fixture paths canonicalized, runtime protections unchanged |
 | Python repository policy | 9 passed |
 | Workflow schema/security | actionlint clean; zizmor no findings |
 | ghfactory CI ref/input validation | 5/5 action references resolved; current pins; actionlint/zizmor clean |

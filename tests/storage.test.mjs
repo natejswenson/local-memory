@@ -150,6 +150,26 @@ test("review and expiry exclude records before foreground purge without renewing
   });
   assert.equal(f.raw("show", { id: r.id }).error.code, "NOT_FOUND");
 });
+test("storage rejects symlink ancestors while the canonical fixture path remains usable", (t) => {
+  const f = fixture(t);
+  const alias = path.join(f.dir, "alias");
+  fs.symlinkSync(f.dir, alias, "dir");
+  assert.equal(
+    f.raw("init", {}, true, {
+      LOCAL_MEMORY_HOME: path.join(alias, "store"),
+    }).error.code,
+    "STORAGE_UNAVAILABLE",
+  );
+  assert.equal(fs.existsSync(f.home), false);
+  f.init();
+  assert.equal(f.good("status", {}, true).storage, "ready");
+  assert.equal(
+    f.raw("status", {}, true, {
+      LOCAL_MEMORY_HOME: path.join(alias, "store"),
+    }).error.code,
+    "STORAGE_UNAVAILABLE",
+  );
+});
 test("initialized database missing, permissions, symlinks, corruption, deletion journal absence fail distinctly", (t) => {
   const f = fixture(t);
   f.init();
