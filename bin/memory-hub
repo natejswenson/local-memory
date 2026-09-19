@@ -1,0 +1,216 @@
+#!/usr/bin/env python3
+"""Small, isolated launcher for the upstream Basic Memory engine."""
+import argparse
+import json
+import os
+from pathlib import Path
+import subprocess
+import sys
+
+ROOT = Path(__file__).resolve().parent.parent
+PROJECT = "local-memory"
+ENGINE = ROOT / ".venv/bin/basic-memory"
+
+
+def locations(pilot=False):
+    state = ROOT / ".runtime" / ("pilot" if pilot else "live")
+    return state, state / "config", state / "vault" if pilot else ROOT / "vault"
+
+
+def reject_symlinks(path):
+    for item in (path, *path.parents):
+        if item.is_symlink():
+            raise ValueError(f"Refusing symlink: {item}")
+
+
+def initialize(pilot):
+    state, config, vault = locations(pilot)
+    for path in [state, config / "config.json", vault / "Home.md", vault / ".obsidian/app.json",
+                 *(vault / x for x in ["Preferences", "Projects", "Inbox", "Archive"])]:
+        reject_symlinks(path)
+    for p in [state, config, vault, *(vault / x for x in ["Preferences", "Projects", "Inbox", "Archive", ".obsidian"])]:
+        p.mkdir(parents=True, exist_ok=True, mode=0o700)
+        if p.is_symlink():
+            raise ValueError(f"Refusing symlink: {p}")
+    settings = {"projects": {PROJECT: {"path": str(vault), "mode": "local"}},
+                "default_project": PROJECT, "semantic_search_enabled": False, "auto_update": False,
+                "reranker_enabled": False, "logfire_enabled": False,
+                "logfire_send_to_logfire": False, "index_changes": True,
+                "write_note_overwrite_default": False}
+    path = config / "config.json"
+    if not path.exists():
+        path.write_text(json.dumps(settings, indent=2) + "\n")
+        path.chmod(0o600)
+    home = vault / "Home.md"
+    if not home.exists():
+        home.write_text("---\ntitle: Memory hub\ntype: navigation\nstatus: system\n---\n\n"
+                        "# Memory hub\n\n" + ("Synthetic test vault. No personal knowledge.\n" if pilot else
+                        "Personal memory vault. Use memory-hub doctor to check activation and connectivity.\n") +
+                        "\n- [[Preferences]]\n- [[Projects]]\n- [[Inbox]]\n- [[Archive]]\n")
+    obsidian = vault / ".obsidian/app.json"
+    if not obsidian.exists():
+        obsidian.write_text(json.dumps({"alwaysUpdateLinks": True, "newFileLocation": "folder", "newFileFolderPath": "Inbox"}, indent=2) + "\n")
+    return {"initialized": True, "pilot": pilot, "vault": str(vault), "config": str(config)}
+
+
+def environment(pilot):
+    _, config, vault = locations(pilot)
+    reject_symlinks(config / "config.json")
+    reject_symlinks(vault)
+    if not (config / "config.json").is_file():
+        raise ValueError("Run memory-hub init first")
+    settings = json.loads((config / "config.json").read_text())
+    projects = settings.get("projects", {})
+    project = projects.get(PROJECT, {})
+    if (set(projects) != {PROJECT} or project.get("mode") != "local"
+            or project.get("path") != str(vault)
+            or settings.get("default_project") != PROJECT):
+        raise ValueError("Engine configuration no longer matches the isolated local vault")
+    # Preserve native defaults and existing custom exclusions; fitness has its own
+    # validated reader/writer and must never be rewritten by the generic indexer.
+    ignore = config / ".bmignore"
+    reject_symlinks(ignore)
+    if not ignore.exists():
+        subprocess.run([str(ENGINE.parent / "python"), "-c",
+                        "from basic_memory.ignore_utils import create_default_bmignore; create_default_bmignore()"],
+                       env={**os.environ, "BASIC_MEMORY_CONFIG_DIR": str(config)}, check=True)
+    existing = ignore.read_text()
+    if "Projects/local-fitness" not in existing.splitlines():
+        ignore.write_text(existing.rstrip() + "\nProjects/local-fitness\n")
+    # Do not inherit cloud routing or unrelated Basic Memory projects/credentials.
+    env = {k: v for k, v in os.environ.items() if not k.startswith("BASIC_MEMORY_")}
+    env.update(BASIC_MEMORY_CONFIG_DIR=str(config), BASIC_MEMORY_HOME=str(vault),
+               BASIC_MEMORY_MCP_PROJECT=PROJECT, BASIC_MEMORY_SEMANTIC_SEARCH_ENABLED="false",
+               BASIC_MEMORY_RERANKER_ENABLED="false", BASIC_MEMORY_AUTO_UPDATE="false", BASIC_MEMORY_LOGFIRE_ENABLED="false",
+               BASIC_MEMORY_LOGFIRE_SEND_TO_LOGFIRE="false", PYTHONUNBUFFERED="1",
+               WATCHFILES_FORCE_POLLING="true",
+               HF_HUB_OFFLINE="1", TOKENIZERS_PARALLELISM="false")
+    return env
+
+
+def doctor():
+    state, config, vault = locations()
+    codex_home = Path(os.environ.get("CODEX_HOME", str(Path.home() / ".codex")))
+    import tomllib
+    cfg = codex_home / "config.toml"
+    parsed = tomllib.loads(cfg.read_text()) if cfg.exists() else {}
+    registration = parsed.get("mcp_servers", {}).get("local_memory_hub", {})
+    activated = activation_valid()
+    valid = False
+    issue = None
+    try:
+        environment(False)
+        valid = True
+    except (OSError, ValueError) as error:
+        issue = str(error)
+    enabled = registration.get("enabled", True) if registration else False
+    pilot = "--pilot" in registration.get("args", [])
+    override = (codex_home / "AGENTS.override.md").exists()
+    ready = (activated and valid and ENGINE.is_file() and enabled and not pilot and not override
+             and registration.get("command") == str(ROOT / "bin/memory-hub")
+             and registration.get("args") == ["mcp"])
+    return {"ready": ready, "mode": "live" if ready else "synthetic-pilot" if pilot and enabled else "staged",
+            "engine_installed": ENGINE.is_file(), "vault": str(vault),
+            "vault_exists": vault.is_dir(), "state": str(state), "config_error": issue,
+            "codex_home": str(codex_home), "codex_registered": bool(registration),
+            "codex_enabled": enabled, "instruction_override": override,
+            "desktop_attested": activated,
+            "pending": [] if ready else ["Desktop synthetic read/write verification and live activation"],
+            "note": "Local desktop and CLI only; hosted ChatGPT web is not connected."}
+
+
+def activation_valid():
+    path = locations()[0] / "activation.json"
+    reject_symlinks(path)
+    if not path.exists():
+        return False
+    value = json.loads(path.read_text())
+    return value.get("vault") == str(locations()[2]) and value.get("desktop_verified") is True
+
+
+def activate(desktop_verified, desktop_note=None):
+    if not desktop_verified:
+        raise ValueError("Verify a fresh desktop chat can read and create synthetic notes, then pass --desktop-verified")
+    environment(False)
+    if not desktop_note:
+        raise ValueError("Provide --desktop-note with the return note's relative pilot vault path")
+    pilot_vault = locations(True)[2]
+    note = pilot_vault / desktop_note
+    reject_symlinks(note)
+    if not note.resolve().is_relative_to(pilot_vault.resolve()) or note.suffix != ".md" or not note.is_file():
+        raise ValueError("Desktop return note must be a Markdown file inside the pilot vault")
+    body = note.read_text()
+    if "hub.desktop-return" not in body or "capture_id:" not in body:
+        raise ValueError("Desktop return note lacks the test key or capture identity")
+    import hashlib
+    note_digest = hashlib.sha256(note.read_bytes()).hexdigest()
+    for name in ["engine-probe.json", "recovery-index-evidence.json"]:
+        value = json.loads((ROOT / ".runtime" / name).read_text())
+        passed = (bool(value.get("completed")) and bool(value.get("checks"))
+                  and all(c.get("passed") for c in value["checks"])) if name == "engine-probe.json" else value.get("ok")
+        if not passed:
+            raise ValueError(f"Acceptance evidence is not passing: {name}")
+    from datetime import datetime, timezone
+    path = locations()[0] / "activation.json"
+    reject_symlinks(path)
+    record = {"vault": str(locations()[2]), "desktop_verified": True,
+              "desktop_evidence": "Explicit operator attestation plus persisted return note; not an automated desktop test",
+              "desktop_note": str(note.relative_to(pilot_vault)), "desktop_note_sha256": note_digest,
+              "activated_at": datetime.now(timezone.utc).isoformat()}
+    path.write_text(json.dumps(record, indent=2) + "\n")
+    path.chmod(0o600)
+    return {"activated": True, "next": "python3 scripts/install_codex.py --apply --mode live"}
+
+
+
+def main():
+    os.umask(0o077)
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("command", choices=["init", "doctor", "mcp", "engine", "activate"])
+    p.add_argument("--pilot", action="store_true")
+    p.add_argument("--desktop-verified", action="store_true")
+    p.add_argument("--desktop-note")
+    args, extra = p.parse_known_args()
+    if args.command == "activate":
+        if extra or args.pilot:
+            p.error("unexpected activation arguments")
+        print(json.dumps(activate(args.desktop_verified, args.desktop_note), indent=2))
+        return
+    if args.desktop_verified or args.desktop_note:
+        p.error("--desktop-verified is only valid for activate")
+    if args.command == "init":
+        if extra:
+            p.error("unexpected arguments")
+        print(json.dumps(initialize(args.pilot), indent=2))
+    elif args.command == "doctor":
+        if extra:
+            p.error("unexpected arguments")
+        print(json.dumps(doctor(), indent=2))
+    else:
+        if not ENGINE.is_file():
+            raise ValueError("Engine missing; run uv sync --locked")
+        if not args.pilot and not activation_valid():
+            raise ValueError("Live memory is not activated. Use --pilot until the desktop test passes.")
+        if args.command == "engine" and extra not in (["status"], ["reindex", "--search", "--project", PROJECT]):
+            raise ValueError("Pilot engine permits only status or reindex --search --project local-memory")
+        command = [str(ENGINE)] + (["mcp", "--project", PROJECT] if args.command == "mcp" else extra)
+        if args.command == "mcp" and extra:
+            p.error("MCP uses local stdio only")
+        env = environment(args.pilot)
+        if args.command == "mcp":
+            # Upstream startup indexing runs in the background. Await indexing
+            # first so the first read reflects edits made while clients were off.
+            subprocess.run([str(ENGINE), "reindex", "--search", "--project", PROJECT],
+                           env=env, stdout=sys.stderr, check=True, timeout=60)
+        if args.command == 'mcp':
+            python = ROOT / '.venv/bin/python'
+            os.execve(str(python), [str(python), str(ROOT / 'scripts/guarded_mcp.py')], env)
+        os.execve(str(ENGINE), command, env)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        print(json.dumps({"ok": False, "error": str(exc)}), file=sys.stderr)
+        sys.exit(1)
