@@ -1,40 +1,63 @@
-# local-memory
+# Local memory hub
 
-An opt-in local JSON CLI for short preferences, confirmed facts and project
-context. It provides scoped recall, explicit corrections, selected sharing,
-bounded context and deletion-aware recovery. Data stays outside skill installs.
+An Obsidian Markdown vault shared through Basic Memory's native MCP tools. Local ChatGPT desktop and Codex CLI can use the existing subscription without an OpenAI API key. New installations start in a synthetic pilot; see [activation evidence](docs/implementation-status.md) and the connection runbook before enabling personal capture.
 
-The dependency-free Node package includes a source-first ghostwriter companion
-for `writing.hashtags` and a small second writing client. Both treat recalled
-text as untrusted data; memory never grants authority for external actions.
-No live source stores have been migrated or activated, and no package has been
-published.
+- `vault/`: dedicated personal Obsidian vault, excluded from Git.
+- `.runtime/pilot/vault/`: synthetic integration fixtures only.
+- `.runtime/`: isolated engine configuration, rebuildable index, local test evidence.
+- `skills/local-memory/`: small shared recall/capture workflow.
 
-## Start here
-
-- [Installation, protocol and management](docs/operations.md)
-- [Supported environments and observed probes](docs/compatibility/README.md)
-- [Durability, maintenance locks and crash recovery](docs/recovery.md)
-- [Validation matrix and measurements](docs/validation.md)
-- [Approved design](docs/design/persistent-memory.md)
-
-Use Node 26.8.2 for the pinned stock runtime. The minimum observed runtime is
-Node 25.2.1 with a linked SQLite >=3.51.3; the CLI checks the loaded library.
-The store is created only by explicit initialization. Basic checks:
+## Local setup
 
 ```sh
-npm ci --ignore-scripts
-node scripts/compatibility.mjs
+uv sync --locked
+bin/memory-hub init
+bin/memory-hub init --pilot
+bin/memory-hub doctor
+python3 scripts/install_codex.py             # preview
+python3 scripts/install_codex.py --apply  # preserves the installed mode and other settings
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md#application-checks) for the full suite's
-pinned completion-policy dependency and local test commands.
+The installer targets the active `CODEX_HOME` or `~/.codex`, installs the skill and bootstrap instructions, and saves originals in `local-memory-install-backup`. New default Codex CLI and local ChatGPT desktop sessions inherit the selected pilot/live configuration. Alternate homes, explicit overrides, and project instruction overrides need separate verification; already-running chats do not reload automatically.
 
-## Repository workflow
+For a synthetic client use the absolute `bin/memory-hub-pilot-mcp` launcher. It speaks stdio only. [ChatGPT connection runbook](docs/chatgpt-connection.md) records the subscription-only local desktop path; the earlier Secure MCP Tunnel proposal is superseded.
 
-Contributions use GitHub Flow: short-lived branches open PRs directly to `main`.
-CI retains `repository-policy` and adds `application`. Implementation PRs remain
-draft until separately authorized. Live repository activation and credentials
-remain the separate work in issue #1. A local pass does not establish hosted CI
-or enforcement. See [CONTRIBUTING.md](CONTRIBUTING.md) before changing settings or
-regenerating the merge automation.
+## Verification and recovery
+
+```sh
+.venv/bin/python -m unittest discover -s tests/hub -v
+.venv/bin/python scripts/probe_engine.py
+```
+
+Run the engine probe with no other pilot clients. It creates synthetic notes and retains evidence under `.runtime/`. Failures are reported in JSON; the probe exits nonzero if a check fails.
+
+Take snapshots while writers are idle. Choose a destination outside the vault; a copy on the same disk does not protect against disk loss.
+
+```sh
+python3 scripts/vault_backup.py backup --vault "$PWD/vault" --destination '/absolute/backup/directory'
+python3 scripts/vault_backup.py restore --archive '/absolute/backup.zip' --quarantine '/absolute/new/review-directory'
+```
+
+Restores verify checksums and create a new quarantine directory. Review historical/deleted notes before any promotion; restore never merges into the live vault. The search index is rebuildable and is not backed up. `scripts/probe_recovery.py --synthetic-archive ARCHIVE --identifier NOTE_ID --marker EXPECTED_TEXT` tests index reconstruction and MCP retrieval from a synthetic snapshot; run it with `.venv/bin/python`. Daily launchd backups are installed with 14-snapshot retention; inspect `.runtime/live/backups/` for run results.
+
+The legacy installed `local-memory` package remains separate. Do not run Git cleanup against ignored vault/runtime data. Move this checkout only after updating installed launcher paths and skill instructions.
+
+## Fitness owner integration
+
+Preferences and the coach journal have an optional single-writer Markdown backend,
+with the full shared fitness MCP connection for coaching and Garmin queries. See [migration status](docs/fitness-migration-status.md)
+and the [installation and recovery runbook](docs/fitness-memory-operations.md).
+After installing the fitness integration, restart existing desktop/CLI sessions to
+load the shared `fitness` tools. Fitness notes use owner reads rather than
+the generic index.
+
+## Existing memory package
+
+The opt-in Node memory CLI remains available and unchanged. See the
+[legacy package guide](docs/legacy-memory.md) for its installation and protocol.
+It is a separate store; the Obsidian hub does not implicitly migrate it.
+
+For this publication, changes land on `dev` before a PR promotes them to `main`.
+The existing repository-policy and Node application checks remain in place.
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for both test suites and publication policy.

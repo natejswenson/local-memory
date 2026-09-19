@@ -289,7 +289,7 @@ class RepositoryPolicyTests(unittest.TestCase):
 
     def test_all_workflows_parse_and_stay_in_scope(self):
         files = sorted((ROOT / '.github/workflows').glob('*.y*ml'))
-        self.assertEqual([p.name for p in files], ['ci.yml', 'main-automerge.yml'])
+        self.assertEqual([p.name for p in files], ['ci.yml', 'hub.yml', 'main-automerge.yml'])
         for path in files:
             doc = workflow(path.read_text())
             self.assertIsInstance(doc, dict)
@@ -310,6 +310,23 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertRegex(action['uses'], r'^actions/[a-z-]+@[0-9a-f]{40}$')
         self.assertEqual(actions[0]['with']['persist-credentials'], 'false')
         self.assertIn('PyYAML==6.0.3', job['steps'][2]['run'])
+
+    def test_hub_workflow_uses_pinned_synthetic_fitness_contract(self):
+        doc = workflow(self.read('.github/workflows/hub.yml'))
+        self.assertEqual(doc['on']['pull_request']['branches'], ['dev', 'main'])
+        self.assertEqual(doc['permissions'], {'contents': 'read'})
+        job = doc['jobs']['hub']
+        self.assertLessEqual(int(job['timeout-minutes']), 15)
+        for step in job['steps']:
+            if 'uses' in step:
+                self.assertRegex(step['uses'], r'^[\w-]+/[\w-]+@[0-9a-f]{40}$')
+                if step['uses'].startswith('actions/checkout@'):
+                    self.assertEqual(step['with']['persist-credentials'], 'false')
+        fixture = next(s for s in job['steps'] if s.get('with', {}).get('repository') == 'natejswenson/local-fitness')
+        self.assertEqual(fixture['with']['ref'], '544231bd0b03116bc812e2b7e61342e2f45b7d90')
+        contract = job['steps'][-1]
+        self.assertIn('FITNESS_SOURCE_REPO', contract['env'])
+        self.assertIn('unittest discover -s tests/hub -v', contract['run'])
 
     def test_contribution_guidance(self):
         self.assertIn('CONTRIBUTING.md', self.read('README.md'))

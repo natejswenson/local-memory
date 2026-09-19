@@ -1,0 +1,2 @@
+# Pinned engine; transitive resolution is recorded in uv.lock.
+basic-memory==0.23.2

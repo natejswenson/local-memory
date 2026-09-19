@@ -266,3 +266,14 @@ ignored `node_modules/` after npm setup, then supplies the same consumer URL.
 Both `repository-policy` and `application` run on draft PRs without path filters.
 Adding application CI does not activate or modify branch protection; issue #1
 still owns repository activation. Keep the generated merge workflow unchanged.
+
+## Obsidian hub checks
+
+The current hub publication stages changes through `dev` and then a promotion PR
+to `main`, as requested by the maintainer. This does not activate or reconfigure
+the generated repository-protection policy above.
+
+Run `uv sync --locked`, then `FITNESS_SOURCE_REPO=/path/to/local-fitness
+.venv/bin/python -m unittest discover -s tests/hub -v`. The separate `hub` CI job
+checks out a pinned fitness adapter revision to run its synthetic integration
+contracts. Tests use temporary stores and never access real vaults or credentials.
