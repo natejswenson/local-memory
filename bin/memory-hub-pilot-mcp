@@ -1,0 +1,3 @@
+#!/bin/sh
+# Synthetic-only entry point, relative to this checkout.
+exec "$(dirname "$0")/memory-hub" mcp --pilot
