@@ -43,6 +43,47 @@ class VaultBackupTests(unittest.TestCase):
             backup.restore(archive, target)
         self.assertTrue((target / "note.md").exists())
 
+    def test_workspace_assets_and_skill_control_roundtrip_stay_quarantined(self):
+        for name in ["view.base", "map.canvas", "image.png", "attachment.pdf"]:
+            (self.vault / name).write_bytes(b"synthetic asset")
+        control = self.root / "control"
+        control.mkdir()
+        (control / "config.json").write_text('{"version":1,"bindings":{}}')
+        (control / "forgotten.json").write_text('{"old":{"operation":"synthetic"}}')
+        result = backup.backup(self.vault, self.destination, skill_control=control)
+        # Simulate forgetting after snapshot: restore must not roll this back.
+        latest = '{"old":{"operation":"synthetic"},"new":{"operation":"later"}}'
+        (control / "forgotten.json").write_text(latest)
+        target = self.root / "quarantine"
+        restored = backup.restore(result["archive"], target)
+        self.assertTrue(restored["requires_current_ledger_reconciliation"])
+        self.assertFalse(restored["activated"])
+        self.assertEqual((control / "forgotten.json").read_text(), latest)
+        self.assertTrue((target / "skill-control/forgotten.json").exists())
+        self.assertFalse((target / "skill-control/writer.lock").exists())
+        for name in ["view.base", "map.canvas", "image.png", "attachment.pdf"]:
+            self.assertEqual((target / "vault" / name).read_bytes(), b"synthetic asset")
+
+    def test_control_missing_or_changed_refuses_publication(self):
+        with self.assertRaises(ValueError):
+            backup.backup(self.vault, self.destination, skill_control=self.root / "missing")
+        control = self.root / "control"
+        control.mkdir()
+        ledger = control / "forgotten.json"
+        ledger.write_text('{}')
+        original, calls = backup.inventory, 0
+
+        def mutate(*args, **kw):
+            nonlocal calls
+            calls += 1
+            if calls == 5:
+                ledger.write_text('{"changed":true}')
+            return original(*args, **kw)
+
+        with patch.object(backup, "inventory", side_effect=mutate), self.assertRaises(ValueError):
+            backup.backup(self.vault, self.destination, skill_control=control)
+        self.assertEqual(list(self.destination.glob("*.zip")), [])
+
     def test_refuses_nested_destination_and_symlinks(self):
         with self.assertRaises(ValueError):
             backup.backup(self.vault, self.vault / "backups")

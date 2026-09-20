@@ -1,8 +1,40 @@
 # Implementation status — 2026-09-19
 
-**Subscription-only local setup activated.** The user completed the ChatGPT desktop native-MCP round-trip; the persisted return note was independently read and searched from a fresh Codex CLI session. No OpenAI API key, API billing, cloud memory copy, or public endpoint was configured.
+## Central skill activity
 
-## Current installation
+The [activity integration](central-activity.md) adds validated recording/recall,
+Obsidian activity views and automatic five-minute import of the LinkedIn/X success
+logs. The first import saved 31 LinkedIn and 9 X records; launchd repeated the sync
+successfully with no duplicates. The user reported trusting the installed Codex
+PostToolUse hook; native hook execution still requires an observed host event.
+Existing clients must reconnect to receive the expanded MCP tool allowlist.
+
+## Earlier workflow improvements
+
+Current workflow improvements add offline hybrid recall, validated capture with durable
+retry receipts, Obsidian Bases and Scratch/Clippings, 50-case synthetic evaluation,
+coordinated control snapshots and an encrypted Google Drive recovery copy. See the [current workflow guide](memory-improvements.md).
+The initial activation evidence below remains historical; its native-tool advisory
+limits apply to raw search/read, while `recall_context` enforces its documented
+scope, lifecycle and byte-budget checks.
+
+**Subscription-only local setup activated.** The user completed the ChatGPT desktop native-MCP round-trip; the persisted return note was independently read and searched from a fresh Codex CLI session. Initial activation configured no API keys, billing or public endpoint. The later
+user-selected Google Drive backup contains encrypted recovery archives only.
+
+## Current improvement verification
+
+- 121 hub tests pass; the 50-case hybrid retrieval suite passes with no unexpected evidence.
+- Read-only restore auditing now compares current general capture receipts and files
+  as well as the skill forgetting ledger; regression tests cover deletion, edits,
+  pending receipts, path validation and concurrent changes.
+- Nine fresh synthetic MCP checks pass, including retry after restart/reindex.
+- Fresh live MCP advertises `capture_memory` and `recall_context`, with raw writes hidden.
+- Private Drive download matched SHA-256 and restored 132 hub files and 62 fitness records
+  into a new quarantine; no restored state was activated. Cloud uploads remain manual.
+- All six user-selected kepano Obsidian skills are installed at a pinned revision,
+  validated and routed from the local-memory skill and repository instructions.
+
+## Initial installation (historical evidence)
 
 - Canonical personal vault: `/path/to/local-memory/vault`. No private notes or transcripts were imported. The first real capture is the explicit subscription-only decision for this hub.
 - Basic Memory 0.23.2 and dependencies pinned in `uv.lock`. Upstream requires FastMCP 4.0.0b1, explicitly pinned.
@@ -13,7 +45,7 @@
 
 The legacy globally installed local-memory package remains separate and untouched; its status reported zero live records. The vault and runtime are excluded from Git and protected by repository instructions.
 
-## Verified
+## Initial verification (historical evidence)
 
 - 19 unit tests pass: installation preservation/idempotency/modes, symlink/configuration boundaries, activation gating, scheduled-backup installation, archive integrity, and quarantined restore.
 - Live capture through the installed skill passed: `doctor` was ready, the explicit subscription-only decision was created once with native MCP, and exact content/metadata were verified by readback and search. Evidence: `.runtime/live-acceptance.jsonl`.
@@ -33,6 +65,10 @@ ChatGPT web is not connected. The original Secure MCP Tunnel proposal was supers
 
 ## Practical limits
 
-Backups are on the same disk, so they do not cover disk loss; sleeping/logged-out machines can miss the 24-hour recovery target. Concurrent mutation detected during a snapshot fails that run rather than publishing a partial backup; inspect backup logs. Restores are quarantined and may contain historically deleted notes, requiring review before promotion.
+Daily scheduled backups remain on the same disk. An encrypted Drive snapshot has now
+passed download/checksum/quarantine-restore verification. Drive uploads remain manual
+by user choice; off-Mac recovery-key storage remains a user setup step; sleeping/logged-out machines can miss the 24-hour recovery target. Concurrent mutation detected during a snapshot fails that run rather than publishing a partial backup; inspect backup logs. Restores are quarantined and may contain historically deleted notes, requiring review before promotion.
 
-The memory skill's lifecycle, correction, provenance, and context rules are advisory, not server-enforced access controls. Inspect payload-level failures even when transport success is reported. External edits converge asynchronously; avoid overlapping manual and agent changes. Reindexing at each launch may become costly as the vault grows. Hard-crash/power-loss safety and large-corpus performance remain untested.
+Raw native read/search remains advisory. The current `recall_context` and
+`capture_memory` tools enforce their documented scope, lifecycle, provenance and
+write-validation contracts. Inspect payload-level failures even when transport success is reported. External edits converge asynchronously; avoid overlapping manual and agent changes. Reindexing at each launch may become costly as the vault grows. Hard-crash/power-loss safety and large-corpus performance remain untested.

@@ -8,17 +8,34 @@ Registered subject contexts:
 |---|---|
 | `global` | Explicit preferences useful across clients; each note's wording retains its original scope |
 | `local-fitness` | Fitness questions in any client and the verified local-fitness repository/worktrees; use fitness-owned tools |
-| `local-memory` | This repository, `/path/to/local-memory`, and its verified Git worktrees |
+| `local-memory` | This repository (resolved from the installed skill), and its verified Git worktrees |
 
 Other repositories need an explicit subject selection/registration. Until then, recall only `global`; do not infer project identity from a similar directory name.
+
+The bounded `recall_context` interface currently accepts `global` and `local-memory`.
+Registering a new generic subject also requires adding it to `SUBJECTS` in
+`memory_hub/recall.py` and testing its scope. `local-fitness` is always routed to its
+owner. Subject selection is routing for trusted clients, not an access-control boundary.
 
 Registered correction keys:
 
 | Key | Subject | Meaning |
 |---|---|---|
 | `preferences.memory-hub.openai-auth` | `global` | User's subscription-only constraint for this memory hub |
+| `preferences.memory-hub.central-activity` | `global` | User's preference for every skill to report task outcomes to the central Obsidian journal |
+| `project.local-memory.handoff` | `local-memory` | Short-lived, verified implementation state and next steps for this repository |
 
 Synthetic keys `hub.desktop-fixture` and `hub.desktop-return` exist only in the isolated pilot. They are not user preferences. Add new real keys when capturing a new explicit kind of decision; preserve existing keys when correcting the same fact.
+
+Validated capture enforces the registry in `memory_hub/capture.py:KEYS`; update it
+alongside this table when explicitly registering a new key. Ordinary note captures
+may omit a key; explicit corrections require a registered key and the current
+terminal identity. Live writes use `capture_memory`; raw native writes exist only
+in the synthetic pilot for upstream engine compatibility tests.
+
+`Scratch/` and `Clippings/` are unmanaged reference areas. They are excluded from
+both bounded recall and Basic Memory indexing, including nested directories with
+those names. Existing managed notes outside them remain strictly validated.
 
 Stable note identity and `capture_id` identify each independent capture. `supersedes` links corrections to prior identities. Active conflicting notes without an explicit replacement remain a conflict; do not silently select the newest timestamp.
 

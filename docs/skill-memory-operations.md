@@ -93,7 +93,10 @@ against the current `.runtime/skill-memory/forgotten.json` ledger before exposin
 Retain that current ledger outside the restored snapshot. Rolling back both data and ledger
 cannot guarantee forgetting; do not activate such a restore without reconciliation. Existing
 vault backup commands remain quarantined; they are not a new coordinated backup of this
-control directory. Back up vault and control while writers are idle, keep both private, and
+control directory unless `--skill-control` is supplied. The version 2 bundle in
+[memory improvements](memory-improvements.md#coordinated-skill-recovery) snapshots
+both under the skill writer lock and restores them only into quarantine. Back up
+vault and control while other writers are idle, keep both private, and
 never delete control as routine cleanup. Disabling a binding deletes neither store.
 
 ## Verification and distribution

@@ -24,6 +24,9 @@ class InstallTests(unittest.TestCase):
             self.assertEqual(config['model'], 'existing')
             self.assertEqual(config['mcp_servers']['existing']['command'], 'keep-me')
             self.assertFalse(config['mcp_servers']['local_memory_hub']['enabled'])
+            surface = config['mcp_servers']['local_memory_hub']['enabled_tools']
+            self.assertTrue({'capture_memory', 'record_activity', 'recall_activity'} <= set(surface))
+            self.assertNotIn('write_note', surface)
             self.assertTrue((home / 'AGENTS.md').read_text().startswith('Existing instructions.'))
             self.assertEqual((home / 'local-memory-install-backup/config.toml').read_text(), original)
 
