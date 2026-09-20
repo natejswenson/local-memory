@@ -1,0 +1,237 @@
+{
+  "contract": "skill-memory-v1",
+  "skills": {
+    "appletv": {
+      "contract": "skill-memory-v1",
+      "skill": "appletv",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "bible-study": {
+      "contract": "skill-memory-v1",
+      "skill": "bible-study",
+      "mode": "advisory",
+      "keys": [
+        "study.handout-format",
+        "study.duration-minutes"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "brandreport": {
+      "contract": "skill-memory-v1",
+      "skill": "brandreport",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "city-report": {
+      "contract": "skill-memory-v1",
+      "skill": "city-report",
+      "mode": "advisory",
+      "keys": [
+        "city-report.layout",
+        "city-report.metric-order"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "devlog": {
+      "contract": "skill-memory-v1",
+      "skill": "devlog",
+      "mode": "reader",
+      "keys": [
+        "devlog.audience",
+        "devlog.explanation-depth"
+      ],
+      "read_keys": [
+        "writing.hashtags"
+      ],
+      "default_enabled": false
+    },
+    "eval": {
+      "contract": "skill-memory-v1",
+      "skill": "eval",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "ghfactory": {
+      "contract": "skill-memory-v1",
+      "skill": "ghfactory",
+      "mode": "advisory",
+      "keys": [
+        "workflow.design-rationale"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "ghostwriter": {
+      "contract": "skill-memory-v1",
+      "skill": "ghostwriter",
+      "mode": "owner",
+      "keys": [
+        "writing.hashtags"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "ghostwriter-x": {
+      "contract": "skill-memory-v1",
+      "skill": "ghostwriter-x",
+      "mode": "owner",
+      "keys": [
+        "writing-x.hashtags"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "github-stats": {
+      "contract": "skill-memory-v1",
+      "skill": "github-stats",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "gmailtriage": {
+      "contract": "skill-memory-v1",
+      "skill": "gmailtriage",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "issuecreator": {
+      "contract": "skill-memory-v1",
+      "skill": "issuecreator",
+      "mode": "advisory",
+      "keys": [
+        "issue.acceptance-style",
+        "project.design-rationale"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "issueflow": {
+      "contract": "skill-memory-v1",
+      "skill": "issueflow",
+      "mode": "advisory",
+      "keys": [
+        "project.design-rationale",
+        "project.known-constraint"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "netwatch": {
+      "contract": "skill-memory-v1",
+      "skill": "netwatch",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "pluginsync": {
+      "contract": "skill-memory-v1",
+      "skill": "pluginsync",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "press": {
+      "contract": "skill-memory-v1",
+      "skill": "press",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "release": {
+      "contract": "skill-memory-v1",
+      "skill": "release",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "resume": {
+      "contract": "skill-memory-v1",
+      "skill": "resume",
+      "mode": "advisory",
+      "keys": [
+        "resume.presentation-format",
+        "resume.explanation-depth"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "shipflow": {
+      "contract": "skill-memory-v1",
+      "skill": "shipflow",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "shipreport": {
+      "contract": "skill-memory-v1",
+      "skill": "shipreport",
+      "mode": "advisory",
+      "keys": [
+        "shipreport.audience",
+        "shipreport.emphasis"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "skillfactory": {
+      "contract": "skill-memory-v1",
+      "skill": "skillfactory",
+      "mode": "advisory",
+      "keys": [
+        "skill-design.interaction-style",
+        "skill-design.output-format"
+      ],
+      "read_keys": [],
+      "default_enabled": false
+    },
+    "skillhelp": {
+      "contract": "skill-memory-v1",
+      "skill": "skillhelp",
+      "mode": "deferred",
+      "keys": [],
+      "read_keys": [],
+      "default_enabled": false
+    }
+  },
+  "city_metrics": [
+    "population",
+    "race",
+    "median_age",
+    "citizenship",
+    "foreign_born",
+    "veterans",
+    "median_household_income",
+    "income_by_race",
+    "income_distribution",
+    "gini",
+    "poverty_rate",
+    "earnings_by_industry",
+    "workforce_by_industry",
+    "homeownership_rate",
+    "tenure",
+    "median_home_value",
+    "home_value_distribution",
+    "commute_time",
+    "commute_means",
+    "no_internet",
+    "uninsured_rate",
+    "coverage_types"
+  ]
+}

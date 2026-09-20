@@ -84,7 +84,7 @@ def install(home, apply=False, mode=None):
                        f"command = {json.dumps(str(ROOT / 'bin/memory-hub'))}",
                        "args = " + json.dumps(["mcp", "--pilot"] if mode == "pilot" else ["mcp"]),
                        "enabled = " + ("false" if mode == "disabled" else "true"), "startup_timeout_sec = 90",
-                       'enabled_tools = ["search_notes", "read_note", "write_note", "recent_activity"]', END])
+                       'enabled_tools = ["search_notes", "read_note", "write_note", "recent_activity", "skill_memory"]', END])
     new_cfg = managed(old_cfg, block)
     parsed = tomllib.loads(new_cfg)
     if unrelated_settings(previous) != unrelated_settings(parsed):

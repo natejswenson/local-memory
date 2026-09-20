@@ -67,3 +67,15 @@ coaching/composition workflow; `save_brief` persists a composed brief. Do not
 construct a current fitness brief from historical journal snippets alone. Check
 returned data dates and availability. A memory-only connection cannot establish
 that Garmin data is missing; report a missing full coach connection separately.
+
+## Optional skill-owned preferences
+
+When an opted-in skill references `skill-memory-v1`, use the bounded `skill_memory`
+tool and its private subject binding. Managed records live under `SkillMemory` in
+this vault and are intentionally absent from generic Basic Memory search. Do not
+copy them through write_note, infer a binding, or enable one during ordinary use.
+The tool offers status, recall, capture, inspect and forget; inspect returns stale
+maintenance handles rather than advice. Read `docs/skill-memory-operations.md` for
+setup/recovery only when needed. Legacy writing adapters keep their existing source
+ownership and sharing unless the user explicitly selects the new shared-profile
+backend. No automatic backfill or narrower-sharing migration is supported.
