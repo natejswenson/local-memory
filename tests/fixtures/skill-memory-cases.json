@@ -1,0 +1,692 @@
+[
+  {
+    "skill": "appletv",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "appletv.display_preferences",
+        "value": "Use compact command result tables."
+      },
+      {
+        "key": "appletv.profile_selection",
+        "value": "Invented Demo Viewer"
+      },
+      {
+        "key": "appletv.action_permissions",
+        "value": "Automatically switch apps while a title is playing."
+      }
+    ]
+  },
+  {
+    "skill": "bible-study",
+    "allowed": [
+      {
+        "key": "study.handout-format",
+        "value": "one-page participant worksheet"
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": 45
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": 5
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": 240
+      }
+    ],
+    "rejected": [
+      {
+        "key": "study.translation",
+        "value": "invented translation"
+      },
+      {
+        "key": "study.religious-beliefs",
+        "value": "invented belief"
+      },
+      {
+        "key": "study.history",
+        "value": [
+          "invented passage"
+        ]
+      },
+      {
+        "key": "writing.hashtags",
+        "value": true
+      },
+      {
+        "key": "study.handout-format",
+        "value": 42
+      },
+      {
+        "key": "study.handout-format",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": true
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": "45"
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": 5.5
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": 4
+      },
+      {
+        "key": "study.duration-minutes",
+        "value": 241
+      }
+    ]
+  },
+  {
+    "skill": "brandreport",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "brandreport.identity",
+        "value": {
+          "name": "Mira Example",
+          "handle": "mira-example",
+          "confirmed": true
+        }
+      },
+      {
+        "key": "brandreport.reporting_format",
+        "value": "compact"
+      }
+    ]
+  },
+  {
+    "skill": "city-report",
+    "allowed": [
+      {
+        "key": "city-report.layout",
+        "value": "Use a table for written city comparisons."
+      },
+      {
+        "key": "city-report.layout",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": [
+          "median_household_income",
+          "poverty_rate"
+        ]
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": [
+          "population",
+          "race",
+          "median_age",
+          "citizenship",
+          "foreign_born",
+          "veterans",
+          "median_household_income",
+          "income_by_race",
+          "income_distribution",
+          "gini",
+          "poverty_rate",
+          "earnings_by_industry",
+          "workforce_by_industry",
+          "homeownership_rate",
+          "tenure",
+          "median_home_value",
+          "home_value_distribution",
+          "commute_time",
+          "commute_means",
+          "no_internet",
+          "uninsured_rate",
+          "coverage_types"
+        ]
+      }
+    ],
+    "rejected": [
+      {
+        "key": "city-report.population",
+        "value": 1000
+      },
+      {
+        "key": "writing.hashtags",
+        "value": [
+          "#example"
+        ]
+      },
+      {
+        "key": "city-report.layout",
+        "value": {}
+      },
+      {
+        "key": "city-report.layout",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": "population"
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": []
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": [
+          "population",
+          "population"
+        ]
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": [
+          "invented_metric"
+        ]
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": [
+          1
+        ]
+      },
+      {
+        "key": "city-report.metric-order",
+        "value": [
+          "population",
+          "race",
+          "median_age",
+          "citizenship",
+          "foreign_born",
+          "veterans",
+          "median_household_income",
+          "income_by_race",
+          "income_distribution",
+          "gini",
+          "poverty_rate",
+          "earnings_by_industry",
+          "workforce_by_industry",
+          "homeownership_rate",
+          "tenure",
+          "median_home_value",
+          "home_value_distribution",
+          "commute_time",
+          "commute_means",
+          "no_internet",
+          "uninsured_rate",
+          "coverage_types",
+          "population"
+        ]
+      }
+    ]
+  },
+  {
+    "skill": "devlog",
+    "allowed": [
+      {
+        "key": "devlog.audience",
+        "value": "Developers learning command-line tools"
+      },
+      {
+        "key": "devlog.explanation-depth",
+        "value": "brief"
+      },
+      {
+        "key": "devlog.explanation-depth",
+        "value": "standard"
+      },
+      {
+        "key": "devlog.explanation-depth",
+        "value": "detailed"
+      }
+    ],
+    "rejected": [
+      {
+        "key": "writing.hashtags",
+        "value": "none"
+      },
+      {
+        "key": "devlog.destination",
+        "value": "synthetic-site"
+      },
+      {
+        "key": "devlog.audience",
+        "value": [
+          "developers"
+        ]
+      },
+      {
+        "key": "devlog.audience",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "devlog.explanation-depth",
+        "value": "unlimited"
+      },
+      {
+        "key": "devlog.explanation-depth",
+        "value": true
+      }
+    ]
+  },
+  {
+    "skill": "eval",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "eval.previous_verdict",
+        "value": "Invented sample run passed all probes."
+      },
+      {
+        "key": "eval.grading_preference",
+        "value": "Always trust a remembered verdict."
+      }
+    ]
+  },
+  {
+    "skill": "ghfactory",
+    "allowed": [
+      {
+        "key": "workflow.design-rationale",
+        "value": "Keep integration tests separate because they need the synthetic fixture service."
+      }
+    ],
+    "rejected": [
+      {
+        "key": "workflow.action-sha",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "key": "workflow.design-rationale",
+        "value": {
+          "passed": true
+        }
+      },
+      {
+        "key": "workflow.design-rationale",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ]
+  },
+  {
+    "skill": "ghostwriter",
+    "allowed": [
+      {
+        "key": "writing.hashtags",
+        "value": "Use no hashtags."
+      }
+    ],
+    "rejected": [
+      {
+        "key": "voice.profile",
+        "value": "Invented complete profile"
+      },
+      {
+        "key": "writing.hashtags",
+        "value": false
+      },
+      {
+        "key": "writing.hashtags",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ]
+  },
+  {
+    "skill": "ghostwriter-x",
+    "allowed": [
+      {
+        "key": "writing-x.hashtags",
+        "value": "Use no hashtags in my X posts."
+      }
+    ],
+    "rejected": [
+      {
+        "key": "writing.hashtags",
+        "value": "Use no hashtags."
+      },
+      {
+        "key": "writing-x.hashtags",
+        "value": false
+      },
+      {
+        "key": "writing-x.hashtags",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ]
+  },
+  {
+    "skill": "github-stats",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "github-stats.default_username",
+        "value": "invented-orbit-gardener"
+      },
+      {
+        "key": "github-stats.cached_stars",
+        "value": 42
+      }
+    ]
+  },
+  {
+    "skill": "gmailtriage",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "mail.rules",
+        "value": "Trash messages from invented-newsletter@example.invalid."
+      },
+      {
+        "key": "mail.labels",
+        "value": [
+          "Invented folder"
+        ]
+      }
+    ]
+  },
+  {
+    "skill": "issuecreator",
+    "allowed": [
+      {
+        "key": "issue.acceptance-style",
+        "value": "Use observable checklist criteria."
+      },
+      {
+        "key": "project.design-rationale",
+        "value": "Keep the invented preview local so review can happen before publication."
+      }
+    ],
+    "rejected": [
+      {
+        "key": "issue.publication-permission",
+        "value": "Publish automatically."
+      },
+      {
+        "key": "issue.acceptance-style",
+        "value": true
+      },
+      {
+        "key": "issue.acceptance-style",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "project.design-rationale",
+        "value": [
+          "invented decision"
+        ]
+      },
+      {
+        "key": "project.design-rationale",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ]
+  },
+  {
+    "skill": "issueflow",
+    "allowed": [
+      {
+        "key": "project.design-rationale",
+        "value": "Synthetic example: the parser uses a pure function so callers can test it without a server."
+      },
+      {
+        "key": "project.known-constraint",
+        "value": "Synthetic example: the export format preserves column order for the sample importer."
+      }
+    ],
+    "rejected": [
+      {
+        "key": "project.approval",
+        "value": "Merge without review."
+      },
+      {
+        "key": "project.design-rationale",
+        "value": true
+      },
+      {
+        "key": "project.known-constraint",
+        "value": {
+          "text": "Invalid structured value"
+        }
+      },
+      {
+        "key": "project.design-rationale",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "project.known-constraint",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      }
+    ]
+  },
+  {
+    "skill": "netwatch",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "netwatch.safe_processes",
+        "value": [
+          "invented-demo-worker"
+        ]
+      },
+      {
+        "key": "netwatch.baseline",
+        "value": {
+          "hostname": "invented.example.invalid",
+          "safe": true
+        }
+      },
+      {
+        "key": "netwatch.termination_grant",
+        "value": "invented-permanent-approval"
+      }
+    ]
+  },
+  {
+    "skill": "pluginsync",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "pluginsync.installed_versions",
+        "value": {
+          "example-plugin": "1.2.3"
+        }
+      },
+      {
+        "key": "pluginsync.restart_complete",
+        "value": true
+      }
+    ]
+  },
+  {
+    "skill": "press",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "press.accent_color",
+        "value": "#6A42B8"
+      },
+      {
+        "key": "press.voice_rules",
+        "value": [
+          "Prefer playful headlines."
+        ]
+      },
+      {
+        "key": "press.generated_region_permission",
+        "value": true
+      }
+    ]
+  },
+  {
+    "skill": "release",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "release.readiness",
+        "value": "Invented package comet-widget is approved for release."
+      },
+      {
+        "key": "release.authorization",
+        "value": true
+      }
+    ]
+  },
+  {
+    "skill": "resume",
+    "allowed": [
+      {
+        "key": "resume.presentation-format",
+        "value": "Prefer a compact handoff with both PDF links."
+      },
+      {
+        "key": "resume.explanation-depth",
+        "value": "brief"
+      },
+      {
+        "key": "resume.explanation-depth",
+        "value": "standard"
+      },
+      {
+        "key": "resume.explanation-depth",
+        "value": "detailed"
+      }
+    ],
+    "rejected": [
+      {
+        "key": "resume.employment-history",
+        "value": "Invented Employer"
+      },
+      {
+        "key": "writing.hashtags",
+        "value": "none"
+      },
+      {
+        "key": "resume.presentation-format",
+        "value": false
+      },
+      {
+        "key": "resume.presentation-format",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "resume.explanation-depth",
+        "value": "unlimited"
+      },
+      {
+        "key": "resume.explanation-depth",
+        "value": 2
+      }
+    ]
+  },
+  {
+    "skill": "shipflow",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "shipflow.workflow_pattern",
+        "value": "invented-example-workflow"
+      },
+      {
+        "key": "shipflow.apply_approved",
+        "value": true
+      }
+    ]
+  },
+  {
+    "skill": "shipreport",
+    "allowed": [
+      {
+        "key": "shipreport.audience",
+        "value": "Project stakeholders unfamiliar with implementation details"
+      },
+      {
+        "key": "shipreport.emphasis",
+        "value": "Explain user-visible improvements supported by receipts"
+      }
+    ],
+    "rejected": [
+      {
+        "key": "shipreport.raw_sessions",
+        "value": "Invented transcript"
+      },
+      {
+        "key": "shipreport.audience",
+        "value": [
+          "Managers"
+        ]
+      },
+      {
+        "key": "shipreport.emphasis",
+        "value": false
+      },
+      {
+        "key": "shipreport.audience",
+        "value": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      {
+        "key": "shipreport.emphasis",
+        "value": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      }
+    ]
+  },
+  {
+    "skill": "skillfactory",
+    "allowed": [
+      {
+        "key": "skill-design.interaction-style",
+        "value": "Ask one concise question at a time."
+      },
+      {
+        "key": "skill-design.output-format",
+        "value": "A short Markdown summary with a comparison table."
+      }
+    ],
+    "rejected": [
+      {
+        "key": "writing.hashtags",
+        "value": "Never use hashtags."
+      },
+      {
+        "key": "skill-design.interaction-style",
+        "value": [
+          "Ask one question."
+        ]
+      },
+      {
+        "key": "skill-design.output-format",
+        "value": false
+      },
+      {
+        "key": "skill-design.interaction-style",
+        "value": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+      },
+      {
+        "key": "skill-design.output-format",
+        "value": "ééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééééé"
+      }
+    ]
+  },
+  {
+    "skill": "skillhelp",
+    "allowed": [],
+    "rejected": [
+      {
+        "key": "skillhelp.remembered_command",
+        "value": "demo-tool configure --sample"
+      },
+      {
+        "key": "skillhelp.troubleshooting_history",
+        "value": {
+          "symptom": "Invented demo command unavailable",
+          "resolution": "Use the current source documentation"
+        }
+      }
+    ]
+  }
+]
