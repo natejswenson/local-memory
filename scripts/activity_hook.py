@@ -11,6 +11,17 @@ sys.path.insert(0, str(ROOT))
 from memory_hub.activity import ActivityStore, canonical, stamp
 from memory_hub.skill_store import read, atomic, safe
 
+# Native image tools commonly return multi-megabyte data URLs. This is an
+# in-memory input bound, not a journal limit; hook_event retains metadata only.
+MAX_PAYLOAD_BYTES = 64 * 1024 * 1024
+
+
+def read_payload(stream):
+    raw = stream.read(MAX_PAYLOAD_BYTES + 1)
+    if len(raw) > MAX_PAYLOAD_BYTES:
+        raise OverflowError('Hook payload exceeds input bound')
+    return json.loads(raw)
+
 
 def hook_event(payload, store):
     if not isinstance(payload, dict) or payload.get('hook_event_name') != 'PostToolUse':
@@ -53,20 +64,38 @@ def main():
         return 0
     store = ActivityStore(ROOT / 'vault', ROOT / '.runtime/general-memory')
     status = {'checked_at': stamp(), 'status': 'skipped'}
+    stage = 'config'
     try:
-        raw = sys.stdin.buffer.read(1024 * 1024 + 1)
-        if len(raw) > 1024 * 1024:
-            raise ValueError('Oversized hook payload')
         config = json.loads(read(ROOT / '.runtime/activity-config.json'))
         if config.get('enabled') is not True:
             return 0
-        event = hook_event(json.loads(raw), store)
+        stage = 'input'
+        payload = read_payload(sys.stdin.buffer)
+        stage = 'identity'
+        event = hook_event(payload, store)
+        # Do not retain large bodies while the writer waits for its lock.
+        del payload
         if event:
+            stage = 'record'
             result = store.record(event)
             status.update(status=result['status'], verified=result.get('verified', False))
+            if result['status'] == 'unavailable':
+                status['error_code'] = 'ACTIVITY_WRITE_UNAVAILABLE'
+    except OverflowError:
+        status.update(status='unavailable', error_code='HOOK_PAYLOAD_TOO_LARGE',
+                      input_limit_bytes=MAX_PAYLOAD_BYTES)
     except (OSError, ValueError, KeyError, TypeError, yaml.YAMLError):
+        # Stage and fixed codes are diagnostic; exception text can contain input.
+        status.update(status='unavailable', error_code='HOOK_INPUT_OR_STATE_INVALID')
+    try:
+        if status['status'] == 'unavailable':
+            status['stage'] = stage
+            # A subsequent success must not erase the evidence for an intermittent
+            # warning. This file contains only allowlisted health metadata.
+            atomic(store.control / 'activity/hook-last-failure.json', canonical(status))
+        atomic(store.control / 'activity/hook-status.json', canonical(status))
+    except (OSError, ValueError):
         status['status'] = 'unavailable'
-    atomic(store.control / 'activity/hook-status.json', canonical(status))
     # Never block, replace tool output, grant permission, or reinvoke the agent.
     if status['status'] == 'unavailable':
         print(json.dumps({'systemMessage': 'Local Obsidian activity recording failed; the tool outcome was not changed. Inspect activity hook health.'}))

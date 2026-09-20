@@ -59,6 +59,14 @@ and appears in `.runtime/general-memory/activity/hook-status.json` after a nativ
 host invocation. Existing sessions may require restart. Hosted tools and some
 specialized tool paths do not emit these local hook events.
 
+Native image results can contain multi-megabyte data URLs. The hook accepts up
+to 64 MiB of JSON in memory, extracts only the existing bounded metadata, and
+discards input/output bodies before recording. A larger or malformed event still
+leaves the original tool outcome untouched. `hook-status.json` carries a fixed
+error code and processing stage on failure; `hook-last-failure.json` retains the
+latest failure metadata after later successful calls, without storing payloads
+or exception text. This avoids losing the reason for an intermittent warning.
+
 The hook retains tool name, time, a project label, stable event identity and observed
 status. It does not retain arguments, output bodies or transcripts. The journal
 rejects common credential patterns but is not a complete secret classifier: callers
