@@ -75,7 +75,7 @@ def environment(pilot):
                         "from basic_memory.ignore_utils import create_default_bmignore; create_default_bmignore()"],
                        env={**os.environ, "BASIC_MEMORY_CONFIG_DIR": str(config)}, check=True)
     existing = ignore.read_text()
-    missing = [name for name in ("Projects/local-fitness", "SkillMemory") if name not in existing.splitlines()]
+    missing = [name for name in ("Projects/local-fitness", "SkillMemory", "Templates", "Scratch", "Clippings", "Activity", "Atlas", "**/Scratch/**", "**/Clippings/**") if name not in existing.splitlines()]
     if missing:
         ignore.write_text(existing.rstrip() + "\n" + "\n".join(missing) + "\n")
     # Do not inherit cloud routing or unrelated Basic Memory projects/credentials.

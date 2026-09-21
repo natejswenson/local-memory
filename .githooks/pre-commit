@@ -1,0 +1,8 @@
+#!/bin/sh
+set -eu
+python3 scripts/check_public_tree.py --check-identity
+if ! command -v gitleaks >/dev/null 2>&1; then
+    echo 'Install Gitleaks before committing to this public repository.' >&2
+    exit 1
+fi
+gitleaks git --staged --redact=100 --no-banner --no-color

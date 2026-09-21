@@ -61,6 +61,17 @@ class SkillMemoryTests(unittest.TestCase):
             **kw,
         )
 
+    def test_multi_key_recall_reads_scope_once_and_refreshes_next_request(self):
+        saved = self.capture()
+        with patch.object(self.store, "records", wraps=self.store.records) as scan:
+            got = self.request("recall", keys=["issue.acceptance-style", "project.design-rationale"])
+            self.assertEqual(scan.call_count, 1)
+            self.assertEqual(got["records"][0]["value"], "Use observable outcomes.")
+        path = self.store.path(saved["record"]["id"], "issuecreator", "fixture")
+        path.write_text(path.read_text().replace("Use observable outcomes.", "Use measurable outcomes."))
+        got = self.request("recall", keys=["issue.acceptance-style"])
+        self.assertEqual(got["records"][0]["value"], "Use measurable outcomes.")
+
     def test_capture_recall_correction_forget_restart(self):
         a = self.capture()
         self.assertEqual(a["status"], "saved", a)

@@ -297,6 +297,9 @@ class SkillStore:
             "withheld_keys": [],
             "trust": "untrusted-data",
         }
+        # One fresh read per authorized scope, per request. Never retain note
+        # bodies between requests: Obsidian edits must be visible next time.
+        scopes = {}
         for key in keys:
             owner, subject, ownerb = q["skill"], q["subject"], b
             try:
@@ -321,7 +324,10 @@ class SkillStore:
                             ownerb.get("repo_path", "")
                         ):
                             raise ValueError("REPOSITORY_UNREGISTERED")
-                r = self.current(self.records(owner, subject), key)
+                scope = (owner, subject)
+                if scope not in scopes:
+                    scopes[scope] = self.records(owner, subject)
+                r = self.current(scopes[scope], key)
                 if not r:
                     continue
                 self.dependencies(r, ownerb)

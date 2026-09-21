@@ -7,6 +7,15 @@ An Obsidian Markdown vault shared through Basic Memory's native MCP tools. Local
 - `.runtime/`: isolated engine configuration, rebuildable index, local test evidence.
 - `skills/local-memory/`: small shared recall/capture workflow.
 
+The [memory workflow guide](docs/memory-improvements.md) covers bounded
+`recall_context` with offline semantic retrieval, validated `capture_memory`, Obsidian
+Bases and templates, 50-case evaluation, and encrypted Google Drive recovery bundles.
+See [encrypted recovery](docs/hub-recovery.md) for key storage and restore instructions.
+
+The [central activity guide](docs/central-activity.md) covers skill outcome reporting,
+automatic LinkedIn/X publication-log import, Codex tool-call hooks and Obsidian's
+Activity dashboard. History and current preferences use separate recall tools.
+
 ## Local setup
 
 ```sh

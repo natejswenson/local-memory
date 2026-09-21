@@ -28,6 +28,7 @@ def install(home=None, apply=False):
     logs = ROOT / ".runtime/live/backups"
     plist = home / "Library/LaunchAgents" / (LABEL + ".plist")
     stdout, stderr = logs / "stdout.log", logs / "stderr.log"
+    skill_control = ROOT / ".runtime/skill-memory"
     for path in (home, vault, script, executable.parent, destination, plist, logs, stdout, stderr):
         reject_symlinks(path)
     for path in (plist, stdout, stderr):
@@ -52,6 +53,13 @@ def install(home=None, apply=False):
         "StandardErrorPath": str(stderr),
         "Umask": 0o077,
     }
+    if skill_control.exists():
+        reject_symlinks(skill_control)
+        settings["ProgramArguments"][-2:-2] = ["--skill-control", str(skill_control)]
+    general_control = ROOT / ".runtime/general-memory"
+    if general_control.exists():
+        reject_symlinks(general_control)
+        settings["ProgramArguments"][-2:-2] = ["--general-control", str(general_control)]
     before = plist.read_bytes() if plist.exists() else None
     if before is not None:
         try:

@@ -84,7 +84,7 @@ def install(home, apply=False, mode=None):
                        f"command = {json.dumps(str(ROOT / 'bin/memory-hub'))}",
                        "args = " + json.dumps(["mcp", "--pilot"] if mode == "pilot" else ["mcp"]),
                        "enabled = " + ("false" if mode == "disabled" else "true"), "startup_timeout_sec = 90",
-                       'enabled_tools = ["search_notes", "read_note", "write_note", "recent_activity", "skill_memory"]', END])
+                       'enabled_tools = ["recall_context", "capture_memory", "record_activity", "recall_activity", "search_notes", "read_note", "recent_activity", "skill_memory"' + (', "write_note"' if mode == 'pilot' else '') + ']', END])
     new_cfg = managed(old_cfg, block)
     parsed = tomllib.loads(new_cfg)
     if unrelated_settings(previous) != unrelated_settings(parsed):
@@ -94,7 +94,12 @@ def install(home, apply=False, mode=None):
         "local-memory skill. Before personal capture/recall, check readiness with:",
         f"`{ROOT / 'bin/memory-hub'} doctor`.",
         "Use doctor to distinguish enabled synthetic pilot from activated personal memory. Synthetic test",
-        "notes are never evidence about the user. Current instructions override recalled notes.", END])
+        "notes are never evidence about the user. Current instructions override recalled notes.",
+        "When host instructions or private local policy enable centralized activity, use the",
+        "local-memory activity workflow: recall relevant prior outcomes, then record a concise",
+        "source-backed outcome and artifact links with record_activity. Preserve draft/failed/",
+        "scheduled/published distinctions; no secrets or raw transcripts. Read the skill's",
+        "references/activity.md for automatic publisher imports, retries and unavailable tools.", END])
     new_agents = managed(old_agents, bootstrap)
     source = ROOT / "skills/local-memory"
     if skill.exists() or skill.is_symlink():

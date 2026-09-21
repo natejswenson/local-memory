@@ -2,9 +2,9 @@
 
 ## Subscription-only constraint — supersedes the tunnel proposal
 
-The user requires the existing OpenAI subscription only, with no OpenAI API key. Stop Platform sign-in/key onboarding and do not configure Secure MCP Tunnel: its official prerequisites explicitly require a runtime API key. No API key or billing was configured.
+The local-first design supports subscription-only desktop use without provisioning API billing or a tunnel. Account-specific constraints belong in private installation policy. Do not configure paid services or public transport implicitly.
 
-The revised primary path is **local MCP shared by ChatGPT desktop and Codex CLI**. Official documentation states that these clients share `~/.codex/config.toml` on the same Codex host and support local stdio servers. This can reuse the installed memory launcher and skill without the OpenAI tunnel. The desktop round-trip remains unverified because computer automation cannot control the protected app; do not substitute CLI evidence for desktop evidence. Production remains disabled until the required client test passes.
+The revised primary path is **local MCP shared by ChatGPT desktop and Codex CLI**. Official documentation states that these clients share `~/.codex/config.toml` on the same Codex host and support local stdio servers. This can reuse the installed memory launcher and skill without the OpenAI tunnel. Do not substitute CLI evidence for the required desktop round-trip. Production remains disabled until the installation's client test passes; keep those attestations private.
 
 ChatGPT web does not read the local configuration. Its optional path is a remote HTTPS MCP connection with appropriate authentication, which needs separate transport/account evaluation and has not been deployed. The desktop route does not prove web support.
 
@@ -21,21 +21,23 @@ Make `local-memory` the integration home for a dedicated Markdown memory vault a
 
 Basic Memory documents Markdown as authoritative and its database as a secondary index. It already supplies file watching, CLI access, and MCP access. This is a closer fit to editable Obsidian memory than turning the current database engine into a file synchronization system. [Basic Memory architecture](https://docs.basicmemory.com/reference/technical-information)
 
-The confirmed first-release targets are **ChatGPT and all Codex CLI chats**, with reusable skill integration. Configure Codex at user/host scope so sessions across repositories can access the same hub; do not require per-repository installation. Claude Code remains an additional integration from the earlier scope, but Claude Desktop and other desktop apps are not required for this release. The user selected a new vault inside this repository, rather than an existing personal vault.
+The confirmed first-release targets are **ChatGPT and all Codex CLI chats**, with reusable skill integration. Configure Codex at user/host scope so sessions across repositories can access the same hub; do not require per-repository installation. Claude Code remains an additional integration from the earlier scope, but Claude Desktop and other desktop apps are not required for this release. The canonical vault is a private, ignored directory, separate from versioned implementation.
 
 “All Codex CLI chats” means tool availability across the user's inventoried Codex configuration homes and normal profiles, including new, resumed, repository, worktree and non-repository sessions. It does not mean automatic transcript import or that the model always chooses recall. Existing sessions may require reconnecting. Inspect effective configuration and instruction overrides, including alternate `CODEX_HOME` and `AGENTS.override.md`; do not overwrite unrelated instructions. ChatGPT's actual chat surface must be validated separately from the desktop Codex host.
 
 The recommendation is **adopt an existing Markdown engine for new shared knowledge, preserve current memory behavior during migration, and retire duplicate ownership one consumer at a time**. Do not rewrite the whole existing protocol around Basic Memory. Its suitability still needs a small compatibility and retrieval pilot.
 
-**2. What already exists locally**
+**2. Legacy compatibility and local discovery**
 
-The checked-out Git tree contains zero tracked files and only the initial commit, `c7b2b5d`. The visible `.issueflow/` and `issueflow/` directories contain operational artifacts and nested worktrees. They are not a knowledge corpus and must never be swept into memory indexing.
+The separate legacy SQLite package exposes scoped retrieval, bounded responses,
+idempotency and deletion suppression. It is not the Markdown hub's authoritative
+store. Inspect supported installation metadata without dumping personal records;
+do not assume an installed binary means personal memory is populated or enabled.
 
-An installed private package, `@natejswenson/local-memory@0.1.0`, exists separately. It exposes `local-memory` and `local-memory-adapter`. Its implementation makes SQLite authoritative; Markdown is an export. It already has scoped retrieval, version checks, bounded responses, mutation idempotency, deletion suppression, and a source-first Ghostwriter adapter. Its adapter vocabulary is a narrow pilot, not general infrastructure support. [Installed package](~/.local/lib/node_modules/@natejswenson/local-memory/package.json), [operations](~/.local/lib/node_modules/@natejswenson/local-memory/docs/operations.md), [adapter](~/.local/lib/node_modules/@natejswenson/local-memory/adapters/client.mjs)
-
-A store directory exists at `~/Library/Application Support/local-memory`; its private contents were not inspected. Neither its existence nor installed executables prove that memory is populated or enabled. Historical package documentation reports a successful Codex host check, no successful Claude smoke result, and synthetic recall measurements. Those checks were not rerun for this research. [Compatibility evidence](~/.local/lib/node_modules/@natejswenson/local-memory/docs/compatibility/README.md), [historical validation](~/.local/lib/node_modules/@natejswenson/local-memory/docs/validation.md)
-
-First inspect supported legacy status/count/registration metadata without dumping personal records. If the installed pilot is unused, leave it dormant and omit migration from version one. Recover maintained source only before modifying that engine. Do not use the global installation as editable source, reset this working directory, or delete existing runtime artifacts.
+Leave unused legacy stores dormant and migrate only with explicit authorization.
+Never edit the global package in place or ingest operational `.issueflow/` and
+`issueflow/` worktrees as knowledge. Local inventories, existing configuration and
+installation receipts belong under ignored runtime storage rather than this plan.
 
 **3. Alternatives and the reason for choosing this path**
 

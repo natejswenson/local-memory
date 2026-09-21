@@ -18,3 +18,19 @@ __pycache__/
 .env
 .env.*
 !.env.example
+
+# Local profiles and generated stores are never public source.
+/.local/
+*.local.md
+*.ses
+*.sqlite
+*.sqlite3
+*.sqlite-wal
+*.sqlite-shm
+*.db
+*.db-wal
+*.db-shm
+*.fernet
+*.pem
+*.p12
+*.pfx

@@ -61,6 +61,9 @@ class InstallerTests(unittest.TestCase):
             self.assertIn("host.docker.internal", changed)
             self.assertTrue((control / "installation-backup/manifest.json").exists())
             self.assertIn("EXISTING=synthetic", (repo / ".env").read_text())
+            daemon = plistlib.loads((home / 'Library/LaunchAgents/com.local-memory-hub.fitness.plist').read_bytes())
+            self.assertNotIn('TZ', daemon['EnvironmentVariables'])
+            self.assertIn('TZ=America/Chicago', changed)
 
     def test_upgrade_memory_only_without_losing_other_servers(self):
         with tempfile.TemporaryDirectory() as temp:

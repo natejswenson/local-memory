@@ -63,6 +63,13 @@ class BackupInstallTests(unittest.TestCase):
         self.assertEqual(plist.read_bytes(), contents)
         self.assertFalse(Path(result["destination"]).exists())
 
+    def test_existing_skill_control_is_included_in_schedule(self):
+        control = self.repo / ".runtime/skill-memory"
+        control.mkdir(parents=True)
+        result = module.install(self.home)
+        args = result["configuration"]["ProgramArguments"]
+        self.assertEqual(args[args.index("--skill-control") + 1], str(control))
+
     def test_redirected_launchagents_and_log_refused(self):
         result = module.install(self.home)
         external = self.base / "external"

@@ -166,7 +166,7 @@ def prepare(repo, compose, control, home):
         "RunAtLoad": True,
         "KeepAlive": True,
         "ThrottleInterval": 10,
-        "EnvironmentVariables": {"TZ": "America/Chicago", "PYTHONUNBUFFERED": "1"},
+        "EnvironmentVariables": {"PYTHONUNBUFFERED": "1"},
         "StandardOutPath": str(control / "writer.stdout.log"),
         "StandardErrorPath": str(control / "writer.stderr.log"),
     }
