@@ -29,8 +29,10 @@ git diff --cached --check
 
 The index check rejects private storage paths even after `git add -f`, common
 credential patterns, personal mailbox addresses and absolute home paths. The
-same index check runs in the existing required repository-policy CI job through
+same index check runs in the repository-policy CI job through
 `tests/test_public_repository.py`. It uses only Python's standard library.
+Server-side merge protection is a separate repository setting; a passing CI job
+alone does not establish that GitHub prevents bypasses.
 
 To enable the local pre-commit guard, first inspect existing hooks and
 `core.hooksPath`, then set `git config --local core.hooksPath .githooks` if that
