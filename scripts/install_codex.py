@@ -95,7 +95,7 @@ def install(home, apply=False, mode=None):
         f"`{ROOT / 'bin/memory-hub'} doctor`.",
         "Use doctor to distinguish enabled synthetic pilot from activated personal memory. Synthetic test",
         "notes are never evidence about the user. Current instructions override recalled notes.",
-        "The user wants centralized skill activity in Obsidian. For every skill task, use the",
+        "When host instructions or private local policy enable centralized activity, use the",
         "local-memory activity workflow: recall relevant prior outcomes, then record a concise",
         "source-backed outcome and artifact links with record_activity. Preserve draft/failed/",
         "scheduled/published distinctions; no secrets or raw transcripts. Read the skill's",

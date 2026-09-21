@@ -191,19 +191,19 @@ Deleting an event file will not cause the publisher importer to recreate it.""")
             {'type': 'table', 'name': 'Tool calls', 'filters': 'note.action == "tool-call"',
              'order': ['note.occurred_at', 'note.subject', 'note.state', 'note.summary']}]}
     bodies['Activity views.base'] = '# Activity views v1; user customizations are preserved.\n' + yaml.safe_dump(activity_base, sort_keys=False)
-    from memory_hub.projects import registry_path
+    from memory_hub.projects import registry, registry_path
     if registry_path(vault).exists():
+        areas = registry(vault)['areas']
         bodies['Home.md'] = navigation('Memory hub', '''[[Atlas/Home|Open your memory map]]
 
 - [[Atlas/Projects/Local Projects|Local projects]]
-- [[Atlas/Areas/Health & Fitness|Health & Fitness]]
-- [[Atlas/Areas/Writing & Publishing|Writing & Publishing]]
+{{areas}}
 - [[Atlas/Knowledge/Knowledge|Decisions and preferences]]
 - [[Atlas/Journal/Daily summaries|Daily summaries]]
 
 [[Atlas/How this memory works|How the memory map works]]
 
-Source records and maintenance views: [[Memory views.base|Memory review]], [[Activity views.base|Detailed activity]], [[Inbox/_Index|Inbox]].''')
+Source records and maintenance views: [[Memory views.base|Memory review]], [[Activity views.base|Detailed activity]], [[Inbox/_Index|Inbox]].'''.replace('{{areas}}', '\n'.join('- [[Atlas/Areas/' + name + '|' + name + ']]' for name in areas)))
         bodies['Activity/_Index.md'] = navigation('Skill activity', '''[[Atlas/Journal/Daily summaries|Read daily summaries]]
 
 Daily summaries group meaningful outcomes by project, preserving drafts, schedules, failures and publications.

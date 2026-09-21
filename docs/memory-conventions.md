@@ -22,7 +22,7 @@ subjects and validated registry subjects. `local-fitness` is always routed to it
 owner; the explicitly registered `local-fitness-code` subject covers only software
 decisions for that repository. Malformed registry state makes recall unavailable.
 Subject selection is routing for trusted clients, not an access-control boundary.
-The user selected explicit-request-only durable capture for repository facts.
+Durable repository facts require an explicit capture request.
 Routine skill outcomes continue to use the separate activity policy.
 
 Registered correction keys:

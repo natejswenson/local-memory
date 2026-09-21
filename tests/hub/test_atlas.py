@@ -25,7 +25,8 @@ class AtlasTests(unittest.TestCase):
         self.root = Path(self.temp.name).resolve()
         self.vault = self.root / 'vault'; self.vault.mkdir()
         self.control = self.root / '.runtime/general-memory'; self.control.mkdir(parents=True)
-        self.config = {'version': 1, 'timezone': 'America/Chicago', 'projects': [
+        self.config = {'version': 1, 'timezone': 'America/Chicago',
+            'topics': {'developer-tools': 'Development'}, 'areas': {'Research': ['developer-tools']}, 'projects': [
             {'subject': 'local-memory', 'title': 'Shared Memory', 'paths': ['/synthetic/memory'], 'topics': ['memory']},
             {'subject': 'synthetic-app', 'title': 'Synthetic App', 'paths': ['/synthetic/app', '/synthetic/app-worktree'], 'topics': ['developer-tools']}]}
         registry_path(self.vault).write_text(json.dumps(self.config))
@@ -118,6 +119,30 @@ class AtlasTests(unittest.TestCase):
         registry_path(self.vault).write_text('{broken')
         self.assertEqual(recall_context(self.vault, subject='global', query='synthetic')['status'], 'unavailable')
         self.assertEqual(local_day('2026-09-20', ZoneInfo('America/Chicago')), '2026-09-20')
+
+    def test_private_taxonomy_and_timezone_do_not_leak_into_default_install(self):
+        refresh(self.vault, self.control, True)
+        self.assertTrue((self.vault / 'Atlas/Areas/Research.md').exists())
+        self.assertIn('Atlas/Areas/Research', (self.vault / 'Atlas/Projects/Synthetic App.md').read_text())
+        self.assertFalse((self.vault / 'Atlas/Fitness history.base').exists())
+        from memory_hub.projects import registry
+        with tempfile.TemporaryDirectory() as tmp:
+            cfg = registry(Path(tmp).resolve() / 'vault')
+        self.assertEqual(cfg['timezone'], 'UTC')
+        self.assertEqual(cfg['areas'], {})
+        self.assertEqual(set(cfg['topics']), {'memory', 'software'})
+
+    def test_unsafe_or_unknown_private_taxonomy_is_rejected_before_writes(self):
+        import copy
+        for field, value in [('areas', {'../outside': ['memory']}),
+                             ('topics', {'developer-tools': '../outside'}),
+                             ('timezone', 'Invalid/Nowhere'),
+                             ('activity_areas', {'example': 'Unknown'})]:
+            config = copy.deepcopy(self.config); config[field] = value
+            registry_path(self.vault).write_text(json.dumps(config))
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                refresh(self.vault, self.control, True)
+            self.assertFalse((self.vault / 'Atlas').exists())
 
 
 if __name__ == '__main__': unittest.main()

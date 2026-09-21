@@ -94,8 +94,8 @@ vault. It never removes personal notes.
 
 `Memory views.base` provides live Candidates, Review due and Project history tables
 using Obsidian's core Bases support. Views are navigation aids: the recall tool remains
-the authority for resolved corrections and evidence eligibility. The live Base was
-opened successfully in Obsidian. Decision, Preference and Handoff templates include
+the authority for resolved corrections and evidence eligibility. Decision,
+Preference and Handoff templates include
 kind metadata. Scratch and Clippings accept freeform work and are excluded from
 managed recall; promote only a selected revalidated claim.
 
@@ -123,8 +123,8 @@ Unit tests cover capture interruption, deletion/edits, concurrent retries, malfo
 metadata, owner boundaries and authenticated recovery. The health report returns
 counts and repair reasons without bodies. `doctor` checks activation/configuration;
 it does not prove a live cross-client round-trip. Startup still reindexes before
-native reads. The earlier ChatGPT desktop round-trip is historical, user-attested
-activation evidence; this update does not claim a new desktop test.
+native reads. Verify desktop activation separately and retain its evidence in
+private runtime storage.
 
 ## Recovery
 
@@ -154,11 +154,11 @@ it separately off this Mac, such as in a password manager. Never upload the key 
 the backup. Plaintext staging stays in private ignored runtime directories. Only the
 `.fernet` artifact belongs in Google Drive.
 
-A private Google Drive backup was uploaded, downloaded, verified by SHA-256 and
-restored in quarantine. Private cloud receipts are in
-`.runtime/drive-backup-receipt.json`. The existing daily local backup job now includes
-both capture control stores and retains 14 snapshots. Unattended Drive upload is
-not configured, per the user’s preference to keep uploads manual. A Drive snapshot alone does not establish ongoing backup freshness.
+Verify authorized cloud backups by download, checksum and quarantine restore.
+Keep cloud receipts in ignored runtime storage. The optional daily local backup
+job includes both capture control stores and retains 14 snapshots. Uploads are
+manual unless separately authorized; one snapshot does not establish ongoing
+backup freshness.
 
 Backups include `.base`, `.canvas`, common attachments and configuration; indexes
 remain rebuildable. Plain hub snapshot limits are 64 MiB per file and 256 MiB total.
@@ -180,10 +180,10 @@ atomic transaction. Sleeping/logged-out Macs may miss scheduled runs.
 
 ## Issueflow integration
 
-The user selected Issueflow for this repository. Its private binding uses subject
-`local-memory` and this repository root; the existing synthetic Issuecreator binding
-remains separate and is not evidence of user preferences. The repository's AGENTS.md
-documents the trusted subject mapping so the planner need not guess it.
+Issueflow memory requires explicit local opt-in. Read its exact repository and
+subject binding from private installation policy rather than assuming that this
+public source repository establishes permission. Synthetic fixtures remain separate
+and are never evidence of user preferences.
 
 Use the memory-capable installed Issueflow workflow (0.18.0 has the hook). Only its
 planning worker recalls `project.design-rationale` and `project.known-constraint`

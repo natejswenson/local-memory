@@ -1,8 +1,9 @@
 # Central skill activity
 
-The user opted all skill task outcomes into the central Obsidian journal on 2026-09-19.
-This is ongoing authorization to record concise factual outcomes of authorized work,
-including result links. It does not authorize performing new external actions.
+Central activity reporting requires opt-in through current instructions or private
+host policy. When enabled, record concise factual outcomes of authorized work,
+including result links. Public skill instructions do not establish a user's opt-in
+or authorize performing new external actions.
 
 ## Agent workflow (all skills)
 

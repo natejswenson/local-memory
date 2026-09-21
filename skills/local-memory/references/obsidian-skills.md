@@ -1,9 +1,10 @@
 # Obsidian companion skills
 
-The user selected [kepano/obsidian-skills](https://github.com/kepano/obsidian-skills)
-for agents working with this memory hub on 2026-09-19. All six skills were reviewed
-and installed unmodified into `~/.codex/skills/` at revision
-`3ccff5338ea700537839b21900aa5358a0402c98`. The upstream package is MIT licensed.
+The supported companion package is
+[kepano/obsidian-skills](https://github.com/kepano/obsidian-skills), pinned for
+reproducible installation to revision `3ccff5338ea700537839b21900aa5358a0402c98`.
+It is MIT licensed. Check local availability instead of assuming these six skills
+are installed in every profile.
 
 | Work | Skill entrypoint under `~/.codex/skills/` |
 | --- | --- |

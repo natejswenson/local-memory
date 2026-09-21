@@ -1,20 +1,22 @@
 # Central activity in Obsidian
 
-The user selected central skill activity reporting on 2026-09-19. The authoritative
+Central skill activity reporting is an optional local integration. The authoritative
 journal is `vault/Activity/YYYY-MM/UUID.md`. Open **Home → Activity → Activity views**
 for outcomes, published posts, failures/uncertainty, grouping by skill and tool calls.
 **Activity/Coverage** reports the most recent source checks and hook execution.
 
-## What is connected
+## Supported sources
 
-| Source | Capture | Current coverage |
+| Source | Capture | Local prerequisite |
 | --- | --- | --- |
-| All skills in configured Codex sessions | Concise outcome through `record_activity` | Global instructions, skill routing and MCP tools installed; existing sessions must reconnect |
-| LinkedIn Ghostwriter | Local success-log import every five minutes | 31 historical records imported |
-| X Ghostwriter | Local success-log import every five minutes | 9 historical records imported |
-| Codex local tool calls | PostToolUse metadata hook | Installed; user reported trusting it; first native host event not yet observed during setup |
-| Fitness | Existing owner reads/writes | Preferences and journal already in `Projects/local-fitness` |
-| Hosted ChatGPT web and other unconfigured hosts | None | No transport or hook silently installed |
+| Skills in configured clients | Concise outcome through `record_activity` | Explicit reporting opt-in and connected memory tools |
+| LinkedIn and X Ghostwriter | Allowlisted local success-log adapters | Authorized source paths and optional sync job |
+| Codex local tool calls | Metadata-only PostToolUse hook | Hook installation and host trust |
+| Fitness | Existing owner reads/writes | Independently configured owner integration |
+| Unconfigured or hosted clients | No implicit capture | Separately evaluated connection |
+
+Inspect private `Activity/Coverage` and hook status for actual local coverage. Keep
+personal publication counts, import dates, and host attestations out of public docs.
 
 The two publication adapters preserve the available excerpt, date and result URL.
 They do not contain full post bodies and do not re-fetch external platforms. Drafts,
@@ -46,7 +48,7 @@ preference/decision recall. Detailed agent guidance is in
 .venv/bin/python scripts/install_activity.py              # preview host integration
 ```
 
-The installed launch agent is `com.local-memory-hub.activity-sync`. It runs at login
+When installed, `com.local-memory-hub.activity-sync` runs at login
 and every 300 seconds while the user session is available. It uses the hub's Python
 for both synchronization and readiness checks. Sleeping/logged-out machines delay
 updates. Config is `.runtime/activity-config.json`; setting `enabled` to false stops
@@ -54,8 +56,7 @@ both the importer and the hook from recording. Existing history is preserved.
 
 The Codex hook lives in `~/.codex/hooks.json`. The installer preserves other hooks
 and the existing `notify` configuration. New/changed hooks require review in `/hooks`.
-The user reported completing that review during setup; execution health is separate
-and appears in `.runtime/general-memory/activity/hook-status.json` after a native
+Execution health is separate from trust and appears in `.runtime/general-memory/activity/hook-status.json` after a native
 host invocation. Existing sessions may require restart. Hosted tools and some
 specialized tool paths do not emit these local hook events.
 
@@ -89,11 +90,10 @@ Google Drive uploads remain manual. See [recovery](hub-recovery.md).
 
 Synthetic tests cover duplicate/concurrent retries, interrupted writes, deletion,
 manual edits, scoped/bounded recall, rejected secrets and paths, source import,
-metadata-only hooks, installer preservation, MCP and backup/restore. Live publication
-import and a real launchd repeat were verified: 40 records, zero duplicates/rejections.
-A fresh stdio MCP client verifies the exposed tools and publication retrieval.
-This does not claim a new ChatGPT desktop round-trip or a native hook event before
-one has actually appeared in hook health.
+metadata-only hooks, installer preservation, MCP and backup/restore. Verify live
+imports, duplicate handling, fresh client access and native hook execution locally.
+Keep operational receipts private; do not treat synthetic CI results as evidence
+of a user's client round-trip or publisher history.
 
 ## Research and design choices
 

@@ -1,8 +1,8 @@
 # Readable Obsidian memory
 
-The Atlas is the human-facing layer of the memory hub. The user selected projects
-and life areas as the primary structure, brief daily outcome summaries, consistent
-topic tags, and explicit-request-only durable capture for local repositories.
+The Atlas is the human-facing layer of the memory hub: projects and life areas,
+brief daily outcome summaries, consistent topic tags, and explicit-request-only
+durable capture for local repositories.
 
 ## Structure
 
@@ -61,15 +61,21 @@ source write. Preview/apply manually with:
 Generated pages have explicit managed regions. Personal text outside those regions
 and extra properties/tags survive refreshes. Unmanaged destinations and symlink
 paths are refused. Changed generated pages receive private recovery copies under
-`.runtime/atlas-backups`; the original rollout also has a coordinated vault/control
-backup. Ordinary personal source notes are not bulk edited or promoted.
+`.runtime/atlas-backups`. Ordinary personal source notes are not bulk edited or promoted.
 
 ## Repository scope
 
 The private `.runtime/general-memory/project-registry.json` records selected
 repository subjects, readable titles, exact checkout/worktree paths and curated
-topic/area assignments. Its schema is validated on every scoped recall/capture.
+topic/area assignments, timezone, topic titles, life areas, and optional source-area
+bindings. Its schema is validated on every scoped recall/capture.
 The registry is covered by general-control backups and stays out of Git.
+
+The reusable code defaults to UTC, generic Knowledge/Software topics, and no life
+areas. Configure `topics` as a slug-to-title object, `areas` as area titles mapped
+to topic-slug arrays, and optional `activity_areas` as activity subjects mapped to
+area titles. An optional `fitness_area` enables the existing fitness-history view
+under the configured area. No personal taxonomy is embedded in the generator.
 
 ```sh
 .venv/bin/python scripts/refresh_atlas.py --resolve /absolute/checkout
@@ -94,5 +100,5 @@ Synthetic tests cover cross-project isolation, worktree resolution, rejected unk
 and owner scopes, corrupt registry handling, unchanged source hashes, connected
 graphs, timezone boundaries, refresh idempotence, preservation of personal edits,
 unmanaged-destination refusal, edited activity detection, retired knowledge and
-backup/restore of project receipts. Live verification records are private under
-`.runtime/atlas-redesign`, alongside the source-hash comparison and rollout backup.
+backup/restore of project receipts. Keep live verification evidence and installation
+inventories under ignored runtime storage; publish only synthetic results.

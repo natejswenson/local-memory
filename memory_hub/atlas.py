@@ -23,20 +23,12 @@ from .skill_store import atomic, read, safe
 BEGIN = '<!-- BEGIN MEMORY ATLAS -->'
 END = '<!-- END MEMORY ATLAS -->'
 MANAGED = 'memory-atlas-v1'
-TOPICS = {
-    'ai-agents': 'AI and Agents', 'writing': 'Writing and Publishing',
-    'fitness': 'Health and Fitness', 'websites': 'Websites',
-    'learning': 'Learning and Play', 'developer-tools': 'Developer Tools',
-    'personal-finance': 'Personal Finance', 'software': 'Software Projects',
-    'memory': 'Personal Knowledge',
-}
-AREAS = {'Health & Fitness': ['fitness'], 'Writing & Publishing': ['writing']}
 
 
-def topic_path(topic):
+def topic_path(topic, topics, areas):
     # A life area and its identically named topic are one concept, not two nodes.
-    area = next((name for name, tags in AREAS.items() if topic in tags), None)
-    return 'Atlas/Areas/' + area + '.md' if area else 'Atlas/Topics/' + TOPICS[topic] + '.md'
+    area = next((name for name, tags in areas.items() if topic in tags), None)
+    return 'Atlas/Areas/' + area + '.md' if area else 'Atlas/Topics/' + topics[topic] + '.md'
 
 
 def clean(value, limit=160):
@@ -92,7 +84,8 @@ def plan(vault, control):
     cfg = registry(vault)
     if not cfg['projects']:
         raise ValueError('REGISTER_PROJECTS_BEFORE_BUILDING_ATLAS')
-    zone = ZoneInfo(cfg.get('timezone', 'America/Chicago'))
+    zone = ZoneInfo(cfg['timezone'])
+    topics, areas = cfg['topics'], cfg['areas']
     projects = {r['subject']: r for r in cfg['projects']}
     project_paths = {s: 'Atlas/Projects/' + r['title'] + '.md' for s, r in projects.items()}
     # Owner fitness records stay with their writer. Software-project facts have a
@@ -119,7 +112,7 @@ def plan(vault, control):
         subject = row['meta']['project']
         # Global memory-hub preferences are explicitly tied to the memory hub;
         # other global records belong to the Knowledge index until curated.
-        selected = subject if subject in projects else 'local-memory' if str(row['meta'].get('key', '')).startswith('preferences.memory-hub.') else None
+        selected = subject if subject in projects else 'local-memory' if 'local-memory' in projects and str(row['meta'].get('key', '')).startswith('preferences.memory-hub.') else None
         links = [link('Atlas/Knowledge/Knowledge.md', 'Knowledge')]
         tags = ['memory']
         if selected:
@@ -148,9 +141,10 @@ def plan(vault, control):
                 group = link(project_paths[subject], projects[subject]['title'])
                 project_days[subject].add(path)
                 tags.update(projects[subject].get('topics', []))
-            elif m['subject'] == 'publishing':
-                group = link('Atlas/Areas/Writing & Publishing.md', 'Writing & Publishing')
-                tags.add('writing')
+            elif m['subject'] in cfg['activity_areas']:
+                area = cfg['activity_areas'][m['subject']]
+                group = link('Atlas/Areas/' + area + '.md', area)
+                tags.update(areas[area])
             else:
                 group = clean(m['subject'])
             summary = re.sub(r'\s+', ' ', m['summary']).strip()
@@ -174,41 +168,41 @@ def plan(vault, control):
         bodies[path] = page(day + ' — Daily summary', 'daily-summary', '\n'.join(lines), tags, date=day)
 
     for subject, row in projects.items():
-        path = project_paths[subject]; topics = row.get('topics', ['software'])
+        path = project_paths[subject]; project_topics = row.get('topics', ['software'])
         lines = [link('Atlas/Projects/Local Projects.md', 'All local projects'), '', row.get('description', 'Local repository. Its purpose has not been documented here yet.'), '']
         area = row.get('area')
-        if area in AREAS:
+        if area in areas:
             lines.extend(['Area: ' + link('Atlas/Areas/' + area + '.md', area), ''])
-        related_topics = [link(topic_path(t), TOPICS[t]) for t in topics if t in TOPICS and topic_path(t) != 'Atlas/Areas/' + str(area) + '.md']
+        related_topics = [link(topic_path(t, topics, areas), topics[t]) for t in project_topics if topic_path(t, topics, areas) != 'Atlas/Areas/' + str(area) + '.md']
         if related_topics: lines.extend(['Topics: ' + ' · '.join(related_topics), ''])
         lines.extend(['## Decisions and preferences', '',
                       '\n'.join('- ' + link(k, Path(k).stem) for k in project_knowledge[subject]) or 'No durable project facts have been explicitly saved yet.', '',
                       '## Recent outcomes', '',
                       '\n'.join('- ' + link(p, Path(p).stem) for p in sorted(project_days[subject], reverse=True)[:7]) or 'No skill outcomes are recorded for this project yet.', '',
                       '## Repository', '', *['- `' + p + '`' for p in row['paths']]])
-        bodies[path] = page(row['title'], 'project', '\n'.join(lines), topics,
+        bodies[path] = page(row['title'], 'project', '\n'.join(lines), project_topics,
                             aliases=list(dict.fromkeys([Path(p).name for p in row['paths']])), subject=subject)
-        for topic in topics: topic_pages[topic].append(path)
+        for topic in project_topics: topic_pages[topic].append(path)
 
-    for name, topics in AREAS.items():
-        items = sorted(set([p for topic in topics for p in topic_pages[topic]]))
+    for name, area_topics in areas.items():
+        items = sorted(set([p for topic in area_topics for p in topic_pages[topic]]))
         lines = [link('Atlas/Home.md', 'Home'), '',
                  '## Projects and knowledge', '', *['- ' + link(p, Path(p).stem) for p in items]]
-        if name == 'Health & Fitness':
+        if name == cfg.get('fitness_area'):
             lines.extend(['', '## Coaching history', '',
                           'Preferences and coaching history remain in their fitness source records.',
                           '![[Atlas/Fitness history.base]]'])
         else:
-            days = [p for p in daily_paths if 'topic/writing' in bodies[p]]
-            lines.extend(['', '## Recent publishing activity', '', *['- ' + link(p, Path(p).stem) for p in days[:7]]])
+            days = [p for p in daily_paths if any('topic/' + topic in bodies[p] for topic in area_topics)]
+            lines.extend(['', '## Recent activity', '', *['- ' + link(p, Path(p).stem) for p in days[:7]]])
         path = 'Atlas/Areas/' + name + '.md'
-        bodies[path] = page(name, 'area', '\n'.join(lines), topics)
-        for topic in topics: topic_pages[topic].append(path)
+        bodies[path] = page(name, 'area', '\n'.join(lines), area_topics)
+        for topic in area_topics: topic_pages[topic].append(path)
 
     for topic, paths in sorted(topic_pages.items()):
-        if topic not in TOPICS: continue
-        if topic_path(topic).startswith('Atlas/Areas/'): continue
-        name = TOPICS[topic]
+        if topic not in topics: continue
+        if topic_path(topic, topics, areas).startswith('Atlas/Areas/'): continue
+        name = topics[topic]
         bodies['Atlas/Topics/' + name + '.md'] = page(name, 'topic',
             link('Atlas/Home.md', 'Home') + '\n\n' + '\n'.join('- ' + link(p, Path(p).stem) for p in sorted(set(paths))), [topic])
     bodies['Atlas/Projects/Local Projects.md'] = page('Local Projects', 'index',
@@ -223,7 +217,7 @@ def plan(vault, control):
 
 Projects organize work. Areas organize ongoing parts of life. Topic pages connect related projects and knowledge.
 
-Tags use a small shared vocabulary: `topic/ai-agents`, `topic/fitness`, `topic/writing`, `topic/websites`, `topic/learning`, `topic/developer-tools`, `topic/personal-finance`, `topic/software`, and `topic/memory`. The `atlas` tag marks pages in the readable map. A note's `kind` property says whether it is a project, area, topic, knowledge page, or daily summary.
+Tags use the configured vocabulary: {{topic-tags}}. The `atlas` tag marks pages in the readable map. A note's `kind` property says whether it is a project, area, topic, knowledge page, or daily summary.
 
 Daily summaries show meaningful outcomes and keep drafted, failed, scheduled and published states separate. Tool-call receipts stay in the detailed record collection. [[Activity views.base|Browse detailed activity]] when you need sources.
 
@@ -231,10 +225,10 @@ To save lasting knowledge, ask to remember the specific decision or preference a
 
 The main graph shows `tag:#atlas -path:"Atlas/Journal"`: projects, areas, topics and knowledge. Browse [[Atlas/Journal/Daily summaries|daily summaries]] separately. Use `tag:#atlas` to include them in the graph. Edges are actual wikilinks: project membership, topic relationships, and source-backed knowledge. Tags aid filtering; they do not replace those links. Source records remain accessible through the map.
 
-These pages are refreshed views. Add personal writing outside the managed block if you want it preserved. Use the memory tools to correct authoritative claims. Fitness preferences and coaching history keep their owner tools; Running Coach software decisions use a separate repository scope.
-''', ['memory'])
+These pages are refreshed views. Add personal writing outside the managed block if you want it preserved. Use the memory tools to correct authoritative claims. Source-owned records keep their owner tools and remain separate from software project decisions.
+'''.replace('{{topic-tags}}', ', '.join('`topic/' + t + '`' for t in sorted(topics))), ['memory'])
     bodies['Atlas/Home.md'] = page('Home', 'home', '\n'.join([
-        '## Areas', '', *['- ' + link('Atlas/Areas/' + a + '.md', a) for a in AREAS], '',
+        '## Areas', '', *['- ' + link('Atlas/Areas/' + a + '.md', a) for a in areas], '',
         '## Projects and knowledge', '',
         '- [[Atlas/Projects/Local Projects|All local projects]]',
         '- [[Atlas/Knowledge/Knowledge|Decisions and preferences]]',
@@ -246,7 +240,8 @@ These pages are refreshed views. Add personal writing outside the managed block 
             'views': [{'type': 'table', 'name': 'Coaching history',
                        'order': ['formula.entry', 'note.fitness_entry_date', 'note.kind', 'note.status'],
                        'sort': [{'property': 'note.fitness_entry_date', 'direction': 'DESC'}]}]}
-    bodies['Atlas/Fitness history.base'] = '# ' + MANAGED + '\n' + yaml.safe_dump(base, sort_keys=False)
+    if cfg.get('fitness_area'):
+        bodies['Atlas/Fitness history.base'] = '# ' + MANAGED + '\n' + yaml.safe_dump(base, sort_keys=False)
     return bodies, {'projects': len(projects), 'daily_summaries': len(history), 'knowledge_pages': len(current),
                     'meaningful_outcomes': len(meaningful), 'technical_records': len(records) - len(meaningful)}
 

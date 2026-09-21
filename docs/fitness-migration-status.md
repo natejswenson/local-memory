@@ -1,26 +1,20 @@
-# Fitness memory implementation status
+# Fitness memory integration
 
-The production single-writer backend and full global coach connection are
-implemented. The fitness adapter shipped through local-fitness PR #265. It keeps
-legacy defaults for other installations and introduces no model/provider changes.
+The optional fitness integration provides a single-writer Markdown backend while
+preserving the separate fitness owner's tools and legacy defaults. It does not
+change model/provider selection or establish that a local migration has occurred.
 
-Validation includes 2,895 fitness tests with 95.23% coverage, 45 hub tests, the
-16-check native MCP probe, same-machine performance checks, authenticated
-host/container reads and writes, source/restore/reverse-export parity, and
-preservation of journal allocation history. Personal inventories, original
-configuration, migration manifests, health records, tokens, and detailed host
-receipts remain private under ignored runtime directories. No production data is
-included in this repository.
+The full `fitness` MCP registration supports current measurements, coaching prompts,
+and owned memory. A memory-only registration cannot establish that current data is
+unavailable. Restart existing client connections after changing the registration.
 
-The original global eight-tool memory connection could not answer current Garmin
-questions outside the fitness project. The installer now registers the full
-`fitness` server under the same key as the project connection. A fresh client
-verified all 48 stdio tools, coach/brief prompts, populated measurements, and
-vault memory; the authenticated container endpoint was also verified. Existing
-sessions must restart to load the changed registration. A fresh desktop UI round
-trip for this later connection change is not separately attested.
+Synthetic tests cover namespace boundaries, authenticated writer operations,
+migration validation, and recovery. Keep actual health records, migration counts,
+source inventories, host status, tokens and activation receipts in private runtime
+storage. Inspect those locally when verifying an installation; never publish them
+as implementation status.
 
-See [operations](fitness-memory-operations.md) for installation and rollback.
-Historical design documents describe explored alternatives; the operational
-contract is the loopback-only single writer, full coach registration, and
-fitness subtree exclusion from generic Basic Memory indexing.
+See [operations](fitness-memory-operations.md) for installation and rollback. The
+operational contract is a loopback-only single writer and fitness subtree exclusion
+from generic Basic Memory indexing. Historical design alternatives are not proof of
+the current installation's state.

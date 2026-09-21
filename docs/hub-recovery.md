@@ -5,18 +5,19 @@ separate legacy SQLite implementation; do not use its procedures on the vault.
 
 ## Key and destination
 
-- Cloud folder: **Local Memory Backups** in the user's private Google Drive.
+- Destination: a separately configured private backup location; never the public code repository.
 - Default encrypted outbox: `.runtime/drive-outbox/`.
 - Recovery key: `.runtime/recovery-key.txt`, readable only by this user (0600).
 - Private upload/restore evidence: `.runtime/drive-backup-receipt.json`.
 
 Save the key in a password manager that can be recovered without this Mac. Do not
 put it in the Drive backup folder or commit it. Without the key the archive cannot
-be decrypted. The key has not been copied off the Mac by this setup.
+be decrypted. Verify independent key recovery as part of each installation's private checklist.
 
-The existing daily job creates local snapshots with 14-snapshot retention. Drive
-currently contains a separately uploaded, verified encrypted snapshot. The user selected manual Drive uploads. No Drive desktop installation or unattended
-uploader is configured; connected-chat tools alone are not a scheduled backup service.
+The optional daily job creates local snapshots with 14-snapshot retention. Upload
+encrypted snapshots manually to an authorized private destination. No unattended
+uploader is installed by this workflow; connected-chat tools alone are not a
+scheduled backup service. Inspect private receipts for current backup freshness.
 
 ## Create and upload
 
@@ -93,10 +94,10 @@ with zipfile.ZipFile(io.BytesIO(clear)) as bundle:
         target.write(raw)
 ```
 
-## Verified rehearsal
+## Verification
 
-On 2026-09-19 (America/Chicago), the encrypted Drive download matched its creation
-SHA-256 and restored 132 hub files and 62 fitness records into a new local quarantine.
-No restored state was activated. Wrong-key and modified-ciphertext rejection are
-covered by synthetic tests. This verifies the tested snapshot, not future scheduled
-runs, independent key storage, or a physical disk-loss event.
+Authenticate and checksum each downloaded archive, restore into a fresh quarantine,
+and audit current receipts before any promotion. Keep the destination, verification
+dates, personal record counts and results in private runtime storage. Synthetic
+tests cover wrong-key and modified-ciphertext rejection. A successful rehearsal
+does not establish future scheduled runs or independent recovery-key availability.
