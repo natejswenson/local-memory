@@ -16,13 +16,14 @@ import yaml
 
 from .skill_store import read, safe
 from .ranking import bm25
+from .projects import subjects as registered_subjects
 
 SUBJECTS = frozenset({"global", "local-memory"})
 REQUIRED = ("title", "type", "permalink", "project", "status", "source", "capture_id")
 MAX_FILES = 2000
 MAX_BYTES = 16 * 1024 * 1024
 MAX_NOTE = 65536
-EXCLUDED = {"skillmemory", "templates", "issueflow", "local-fitness", "scratch", "clippings", "activity"}
+EXCLUDED = {"skillmemory", "templates", "issueflow", "local-fitness", "scratch", "clippings", "activity", "atlas"}
 YAML_LOADER = getattr(yaml, "CSafeLoader", yaml.SafeLoader)
 
 
@@ -154,7 +155,11 @@ def recall_context(vault, *, project="local-memory", subject="global", query="",
                    keys=None, max_notes=3, max_context_bytes=8192, today=None,
                    semantic_ranker=None):
     """Budget applies to compact JSON payload, excluding MCP transport envelopes."""
-    if (project != "local-memory" or not isinstance(subject, str) or subject not in SUBJECTS
+    try:
+        allowed_subjects = registered_subjects(vault)
+    except (OSError, ValueError, TypeError, KeyError):
+        return {"status": "unavailable", "error": "PROJECT_REGISTRY_INVALID", "records": []}
+    if (project != "local-memory" or not isinstance(subject, str) or subject not in allowed_subjects
             or not isinstance(query, str) or len(query.encode()) > 512
             or type(max_notes) is not int or not 1 <= max_notes <= 5
             or type(max_context_bytes) is not int or not 512 <= max_context_bytes <= 8192

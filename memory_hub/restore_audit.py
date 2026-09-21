@@ -28,7 +28,9 @@ def receipt_snapshot(control, vault):
             raise ValueError("Invalid receipt version")
         relative = record.get("path")
         activity = path.parent == activity_folder
-        valid_path = (isinstance(relative, str) and re.fullmatch(r"Activity/\d{4}-\d{2}/" + re.escape(cid) + r"\.md", relative)) if activity else relative in {f"Inbox/{cid}.md", f"Preferences/{cid}.md", f"Projects/local-memory/{cid}.md"}
+        valid_path = isinstance(relative, str) and bool(re.fullmatch(
+            (r"Activity/\d{4}-\d{2}/" if activity else r"(?:Inbox|Preferences|Projects/(?!local-fitness/)[a-z0-9][a-z0-9._-]{0,79})/")
+            + re.escape(cid) + r"\.md", relative))
         if not valid_path:
             raise ValueError("Invalid capture destination")
         if record.get("phase") not in {"pending", "committed"}:

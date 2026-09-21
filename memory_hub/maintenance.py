@@ -4,10 +4,12 @@ from datetime import date
 import hashlib
 
 from .recall import REQUIRED, SUBJECTS, eligible, resolve, scan
+from .projects import subjects as registered_subjects
 
 
 def catalog(vault, today=None):
     today = today or date.today()
+    allowed_subjects = registered_subjects(vault)
     issues = []
     rows = scan(vault, issues=issues)
     groups, duplicates = defaultdict(list), defaultdict(list)
@@ -21,7 +23,7 @@ def catalog(vault, today=None):
             issues.append({"path": row["path"], "reason": "candidate"})
         elif m.get("status") not in ("active", "archived"):
             issues.append({"path": row["path"], "reason": "invalid_status"})
-        if isinstance(m.get("project"), str) and m["project"] not in SUBJECTS:
+        if isinstance(m.get("project"), str) and m["project"] not in allowed_subjects:
             issues.append({"path": row["path"], "reason": "unregistered_subject"})
         reason = eligible(row, today)
         if (reason and not missing and m.get("status") != "archived"
@@ -49,7 +51,7 @@ def catalog(vault, today=None):
             continue
         if latest["meta"].get("key") and eligible(latest, today) == "overdue":
             issues.append({"path": latest["path"], "reason": "overdue"})
-        if eligible(latest, today) is None and latest["meta"]["project"] in SUBJECTS:
+        if eligible(latest, today) is None and latest["meta"]["project"] in allowed_subjects:
             current.append(latest)
             digest = hashlib.sha256(latest["body"].strip().encode()).hexdigest()
             duplicates[(latest["meta"]["project"], digest)].append(latest["path"])

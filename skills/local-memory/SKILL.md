@@ -9,6 +9,33 @@ Use the `local_memory_hub` MCP server and the dedicated Basic Memory project `lo
 
 The hub checkout is two directories above this SKILL.md after resolving its installed symlink. Resolve that path before using the commands and documents below.
 
+## Readable map and repository scopes
+
+The user's selected interface is `Atlas/Home.md`: projects and life areas, topic
+links/tags, current knowledge, and brief daily outcome summaries. Atlas pages are
+generated navigation over source records, not independent recall evidence. Open the
+source through the relevant owner tool when answering from a page. Detailed activity
+and tool receipts stay outside the map. The default graph is
+`tag:#atlas -path:"Atlas/Journal"`; daily summaries remain available through Home.
+Preserve human additions outside
+managed regions; never edit an Atlas page to correct an authoritative claim.
+
+Local repository/worktree bindings live in the private
+`.runtime/general-memory/project-registry.json`. Resolve the current checkout with
+`scripts/refresh_atlas.py --resolve /absolute/checkout` using the hub Python; do not
+guess the subject from a folder name. This returns a registered subject or `global`.
+Use that subject with `recall_context` and `capture_memory`. The user selected
+**explicit-request-only durable capture for repository facts**. Concise skill outcome
+reporting remains automatic under the standing activity policy. Being in a registered
+repo does not authorize automatically saving its decisions or preferences.
+
+The `local-fitness` health namespace retains its owner tools; `local-fitness-code`
+is the separately registered software repository scope. This distinction prevents
+software decisions from being mixed with health preferences or coaching history.
+Run `scripts/refresh_atlas.py --apply` to refresh the readable map if needed. Outcome
+writes, capture navigation refreshes and the existing publication-sync job also refresh
+it. Registration is maintenance, never inferred from note text.
+
 ## Obsidian companion skills
 
 For Obsidian authoring or vault maintenance, load the relevant installed skill from
@@ -37,7 +64,8 @@ Unavailable tools, authentication failures, and a disconnected Mac mean memory i
 
 Use `recall_context(project="local-memory", subject=..., query=...)` first, or
 provide exact `keys` for a known decision. The supported generic subjects are
-`global` and `local-memory`; fitness and opted-in skills use their owner tools.
+`global`, `local-memory` and explicitly registered private repository subjects;
+fitness and opted-in skills use their owner tools.
 It includes global evidence alongside the selected subject, returns at most three
 whole notes by default, and caps the compact JSON payload at 8192 UTF-8 bytes
 (MCP envelopes are extra). Cite returned identity/path and source. `partial`

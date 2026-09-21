@@ -74,6 +74,17 @@ Activity is stored in `vault/Activity/YYYY-MM/UUID.md`, with hash receipts under
 correction event can identify the prior event in source_id/details. No automatic
 retention deletes history. Back up the vault and general control together.
 
+The human-facing journal is `Atlas/Journal/Daily summaries.md`. It groups meaningful
+outcomes by local day and project; tool-call receipts are omitted. Every outcome links
+to its original record and preserves state. Topic tags use the shared `topic/` vocabulary;
+project, area and topic wikilinks provide the graph edges. The `atlas` tag selects the
+main graph, keeping detailed receipts out. New outcomes and the five-minute publisher
+sync refresh these views. A failed view refresh never makes a saved event unsaved;
+retry `scripts/refresh_atlas.py --apply` after repairing the reported source issue.
+
+The default graph adds `-path:"Atlas/Journal"` to keep date clusters out of the main
+knowledge view. Daily summaries remain connected and accessible through Home.
+
 Recall verifies current file hashes, accepts filters and pagination, and bounds
 whole-event output. Malformed/edited records are unavailable until reviewed. Query
 with narrower filters if a record does not fit the budget. History remains separate

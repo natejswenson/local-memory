@@ -11,12 +11,13 @@ import uuid
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from memory_hub.recall import SUBJECTS
+from memory_hub.projects import subjects as registered_subjects
 from memory_hub.skill_store import read, safe
 
 
-def prepare(*, title, subject, kind, source, body, capture_id=None, review_after=None, key=None):
+def prepare(*, title, subject, kind, source, body, capture_id=None, review_after=None, key=None, subjects=SUBJECTS):
     if (not isinstance(title, str) or not 1 <= len(title.strip()) <= 160
-            or subject not in SUBJECTS or kind not in {"decision", "preference", "handoff"}
+            or subject not in subjects or kind not in {"decision", "preference", "handoff"}
             or not isinstance(source, str) or not 1 <= len(source.strip().encode()) <= 512
             or not isinstance(body, str) or not body.strip() or len(body.encode()) > 8192):
         raise ValueError("Title, registered subject, kind, source and a body up to 8192 bytes are required")
@@ -76,7 +77,7 @@ if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--vault", type=Path, default=ROOT / "vault")
     p.add_argument("--title", required=True)
-    p.add_argument("--subject", choices=sorted(SUBJECTS), required=True)
+    p.add_argument("--subject", required=True)
     p.add_argument("--kind", choices=["decision", "preference", "handoff"], required=True)
     p.add_argument("--source", required=True)
     p.add_argument("--capture-id")
@@ -85,5 +86,6 @@ if __name__ == "__main__":
     p.add_argument("--apply", action="store_true")
     a = p.parse_args()
     draft = prepare(title=a.title, subject=a.subject, kind=a.kind, source=a.source,
-                    body=sys.stdin.read(8193), capture_id=a.capture_id, review_after=a.review_after, key=a.key)
+                    body=sys.stdin.read(8193), capture_id=a.capture_id, review_after=a.review_after, key=a.key,
+                    subjects=registered_subjects(a.vault))
     print(json.dumps(create(a.vault, draft) if a.apply else {"status": "preview", **draft}, ensure_ascii=False))

@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from memory_hub.capture import CaptureStore, validate
 from memory_hub.recall import SUBJECTS
+from memory_hub.projects import subjects
 from memory_hub.skill_store import safe, read
 
 
@@ -39,7 +40,7 @@ def main():
     p.add_argument("--interactive", action="store_true")
     p.add_argument("--apply", action="store_true")
     p.add_argument("--title")
-    p.add_argument("--subject", choices=sorted(SUBJECTS))
+    p.add_argument("--subject", choices=sorted(subjects(ROOT / 'vault')))
     p.add_argument("--source")
     p.add_argument("--kind", choices=["decision", "preference", "handoff"], default="decision")
     p.add_argument("--status", choices=["candidate", "active"], default="candidate")
@@ -56,7 +57,7 @@ def main():
         if a.from_note:
             p.error("Use interactive entry or --from-note, not both")
         body = input("Claim: ").strip()
-        a.subject = a.subject or input("Scope (global/local-memory): ").strip()
+        a.subject = a.subject or input("Scope (global or registered repository subject): ").strip()
         a.source = a.source or input("Source: ").strip()
     elif a.from_note:
         body, revision = selected_note(vault, a.from_note, a.expected_revision)
@@ -69,7 +70,7 @@ def main():
     request = validate(dict(title=a.title or body.splitlines()[0][:100] if body else "",
         body=body, subject=a.subject, source=a.source, kind=a.kind, status=a.status,
         capture_id=a.capture_id or str(uuid.uuid4()), key=a.key, supersedes=a.supersedes,
-        review_after=a.review_after))
+        review_after=a.review_after), subjects(vault))
     if not a.apply:
         print(json.dumps({"status": "preview", "request": request, "source_revision": revision}, ensure_ascii=False))
         return 0

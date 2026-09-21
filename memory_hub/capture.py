@@ -17,6 +17,7 @@ import yaml
 
 from .recall import SUBJECTS, identity, resolve, scan
 from .skill_store import atomic, read, safe
+from .projects import subjects as registered_subjects
 
 KEYS = {
     "global": {"preferences.memory-hub.openai-auth", "preferences.memory-hub.central-activity"},
@@ -58,13 +59,13 @@ def exclusive_create(path, raw):
         os.unlink(temp)
 
 
-def validate(request):
+def validate(request, subjects=SUBJECTS):
     allowed = {"project", "subject", "title", "body", "source", "kind", "status",
                "capture_id", "review_after", "key", "supersedes"}
     if not isinstance(request, dict) or set(request) - allowed:
         raise ValueError("UNKNOWN_CAPTURE_FIELD")
     r = {"project": "local-memory", "status": "candidate", "kind": "decision", **request}
-    if r["project"] != "local-memory" or r.get("subject") not in SUBJECTS:
+    if r["project"] != "local-memory" or r.get("subject") not in subjects:
         raise ValueError("UNREGISTERED_SUBJECT")
     if r["kind"] not in {"decision", "preference", "handoff"} or r["status"] not in {"candidate", "active"}:
         raise ValueError("INVALID_KIND_OR_STATUS")
@@ -82,7 +83,8 @@ def validate(request):
         if not isinstance(r["review_after"], str):
             raise ValueError("INVALID_REVIEW_DATE")
         date.fromisoformat(r["review_after"])
-    if r.get("key") is not None and r["key"] not in KEYS[r["subject"]]:
+    allowed_keys = KEYS.get(r["subject"], set()) | ({"project." + r["subject"] + ".handoff"} if r['subject'] != 'global' else set())
+    if r.get("key") is not None and r["key"] not in allowed_keys:
         raise ValueError("UNREGISTERED_CORRECTION_KEY")
     if "supersedes" in r and (not isinstance(r["supersedes"], str) or not r.get("key")):
         raise ValueError("CORRECTION_REQUIRES_KEY_AND_IDENTITY")
@@ -97,7 +99,7 @@ class CaptureStore:
 
     def capture(self, request):
         try:
-            return self._capture(validate(request))
+            return self._capture(validate(request, registered_subjects(self.vault)))
         except (ValueError, TypeError, KeyError) as error:
             return {"status": "rejected", "error": str(error), "verified": False}
         except yaml.YAMLError:

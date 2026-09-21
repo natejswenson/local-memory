@@ -135,11 +135,56 @@ class ActivityStore:
                     receipt['phase'] = 'committed'
                     atomic(receipt_path, canonical(receipt))
                     status = 'recorded'
-                return {'status': status, 'verified': True, 'event_id': event, 'path': relative,
-                        'revision': receipt['content_sha256'], 'truth': 'Source-attributed historical report; not independent verification of the external action.'}
+                result = {'status': status, 'verified': True, 'event_id': event, 'path': relative,
+                          'revision': receipt['content_sha256'], 'truth': 'Source-attributed historical report; not independent verification of the external action.'}
+            if status == 'recorded' and r['action'] != 'tool-call':
+                try:
+                    from .atlas import refresh_if_configured
+                    result['atlas'] = refresh_if_configured(self.vault, self.control).get('applied', False)
+                except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
+                    result['atlas'] = 'refresh_required; activity saved'
+            return result
         except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
             # Never echo malformed source content or secrets in diagnostic output.
             return {'status': 'unavailable', 'verified': False, 'error': 'ACTIVITY_REJECTED_OR_REQUIRES_REVIEW'}
+
+    def verified_rows(self):
+        """One hash-verified snapshot for history recall and derived human views."""
+        if not self.vault.is_dir():
+            raise ValueError('VAULT_MISSING')
+        folder = safe(self.vault / 'Activity')
+        rows, total = [], 0
+        paths = []
+        if folder.exists():
+            for month in sorted(folder.iterdir()):
+                safe(month)
+                if month.is_dir():
+                    if not re.fullmatch(r'\d{4}-\d{2}', month.name):
+                        raise ValueError('INVALID_ACTIVITY_FOLDER')
+                    paths.extend(sorted(month.glob('*.md')))
+                    if len(paths) > MAX_EVENTS:
+                        raise ValueError('ACTIVITY_CAPACITY')
+        for path in paths:
+            raw = read(safe(path), 32768)
+            total += len(raw)
+            if total > 64 * 1024 * 1024:
+                raise ValueError('ACTIVITY_CAPACITY')
+            text = raw.decode()
+            if not text.startswith('---\n'):
+                raise ValueError('INVALID_ACTIVITY')
+            front, body = text[4:].split('\n---\n', 1)
+            m = yaml.safe_load(front)
+            if m.get('contract') != CONTRACT or m.get('type') != 'activity' or str(uuid.UUID(m['event_id'])) != path.stem:
+                raise ValueError('INVALID_ACTIVITY')
+            timestamp(m['occurred_at']); timestamp(m['recorded_at'])
+            if m['occurred_at'][:7] != path.parent.name or m['state'] not in STATES:
+                raise ValueError('INVALID_ACTIVITY')
+            receipt = json.loads(read(self.control / 'activity/receipts' / (path.stem + '.json')))
+            if receipt.get('phase') != 'committed' or receipt.get('path') != path.relative_to(self.vault).as_posix() or receipt.get('content_sha256') != hashlib.sha256(raw).hexdigest():
+                raise ValueError('UNVERIFIED_ACTIVITY_REVISION')
+            rows.append({'meta': m, 'body': body.strip(), 'path': path.relative_to(self.vault).as_posix(),
+                         'revision': receipt['content_sha256']})
+        return rows
 
     def recall(self, *, skill=None, subject=None, state=None, since=None, until=None,
                query='', limit=10, offset=0, max_context_bytes=8192):
@@ -160,45 +205,13 @@ class ActivityStore:
                     date.fromisoformat(v)
             if since and until and since > until:
                 raise ValueError('INVALID_DATE_RANGE')
-            if not self.vault.is_dir():
-                raise ValueError('VAULT_MISSING')
-            folder = safe(self.vault / 'Activity')
-            rows, total = [], 0
-            paths = []
-            if folder.exists():
-                for month in sorted(folder.iterdir()):
-                    safe(month)
-                    if month.is_dir():
-                        if not re.fullmatch(r'\d{4}-\d{2}', month.name):
-                            raise ValueError('INVALID_ACTIVITY_FOLDER')
-                        paths.extend(sorted(month.glob('*.md')))
-                        if len(paths) > MAX_EVENTS:
-                            raise ValueError('ACTIVITY_CAPACITY')
-            for path in paths:
-                raw = read(safe(path), 32768)
-                total += len(raw)
-                if total > 64 * 1024 * 1024:
-                    raise ValueError('ACTIVITY_CAPACITY')
-                text = raw.decode()
-                if not text.startswith('---\n'):
-                    raise ValueError('INVALID_ACTIVITY')
-                front, body = text[4:].split('\n---\n', 1)
-                m = yaml.safe_load(front)
-                if m.get('contract') != CONTRACT or m.get('type') != 'activity' or str(uuid.UUID(m['event_id'])) != path.stem:
-                    raise ValueError('INVALID_ACTIVITY')
-                timestamp(m['occurred_at']); timestamp(m['recorded_at'])
-                if m['occurred_at'][:7] != path.parent.name or m['state'] not in STATES:
-                    raise ValueError('INVALID_ACTIVITY')
-                receipt = json.loads(read(self.control / 'activity/receipts' / (path.stem + '.json')))
-                if receipt.get('phase') != 'committed' or receipt.get('path') != path.relative_to(self.vault).as_posix() or receipt.get('content_sha256') != hashlib.sha256(raw).hexdigest():
-                    raise ValueError('UNVERIFIED_ACTIVITY_REVISION')
-                if skill and m['skill'] != skill or subject and m['subject'] != subject or state and m['state'] != state:
-                    continue
-                day = m['occurred_at'][:10]
-                if since and day < since or until and day > until:
-                    continue
-                rows.append({'meta': m, 'body': body.strip(), 'path': path.relative_to(self.vault).as_posix(),
-                             'revision': receipt['content_sha256']})
+            rows = self.verified_rows()
+            rows = [r for r in rows if
+                    (not skill or r['meta']['skill'] == skill)
+                    and (not subject or r['meta']['subject'] == subject)
+                    and (not state or r['meta']['state'] == state)
+                    and (not since or r['meta']['occurred_at'][:10] >= since)
+                    and (not until or r['meta']['occurred_at'][:10] <= until)]
             scores = bm25(rows, query) if query.strip() else None
             rows = [r for r in rows if scores is None or r['path'] in scores]
             rows.sort(key=lambda r: ((scores or {}).get(r['path'], 0), r['meta']['occurred_at'], r['meta']['recorded_at'], r['path']), reverse=True)

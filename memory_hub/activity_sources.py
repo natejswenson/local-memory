@@ -4,6 +4,7 @@ import json
 import uuid
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
+import yaml
 
 from .activity import ActivityStore, canonical, validate, stamp
 from .skill_store import read, safe, atomic
@@ -102,4 +103,9 @@ def sync_sources(vault, general_control, sources, apply=False):
             if path.exists():
                 proposed = update_navigation(read(path, 32768).decode(), proposed)
             atomic(path, proposed.encode())
+        try:
+            from .atlas import refresh_if_configured
+            result['atlas'] = refresh_if_configured(vault, general_control).get('applied', False)
+        except (OSError, ValueError, TypeError, KeyError, yaml.YAMLError):
+            result['atlas'] = 'refresh_required; source import completed'
     return result

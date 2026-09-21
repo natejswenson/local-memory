@@ -191,6 +191,24 @@ Deleting an event file will not cause the publisher importer to recreate it.""")
             {'type': 'table', 'name': 'Tool calls', 'filters': 'note.action == "tool-call"',
              'order': ['note.occurred_at', 'note.subject', 'note.state', 'note.summary']}]}
     bodies['Activity views.base'] = '# Activity views v1; user customizations are preserved.\n' + yaml.safe_dump(activity_base, sort_keys=False)
+    from memory_hub.projects import registry_path
+    if registry_path(vault).exists():
+        bodies['Home.md'] = navigation('Memory hub', '''[[Atlas/Home|Open your memory map]]
+
+- [[Atlas/Projects/Local Projects|Local projects]]
+- [[Atlas/Areas/Health & Fitness|Health & Fitness]]
+- [[Atlas/Areas/Writing & Publishing|Writing & Publishing]]
+- [[Atlas/Knowledge/Knowledge|Decisions and preferences]]
+- [[Atlas/Journal/Daily summaries|Daily summaries]]
+
+[[Atlas/How this memory works|How the memory map works]]
+
+Source records and maintenance views: [[Memory views.base|Memory review]], [[Activity views.base|Detailed activity]], [[Inbox/_Index|Inbox]].''')
+        bodies['Activity/_Index.md'] = navigation('Skill activity', '''[[Atlas/Journal/Daily summaries|Read daily summaries]]
+
+Daily summaries group meaningful outcomes by project, preserving drafts, schedules, failures and publications.
+
+[[Activity views.base|Browse detailed source records]] · [[Activity/Coverage|Integration coverage]] · [[Atlas/Home|Home]]''')
     if starter is not None:
         bodies[starter["path"]] = navigation(
             "Projects", "[[Projects/_Index|Open project decisions and handoffs]]"
@@ -253,7 +271,11 @@ def install(vault, backup_directory, apply=False):
             if old is not None:
                 atomic(backup / name, old)
             atomic(vault / name, new)
-    return {"applied": apply, "changed": [name for name, _, _ in changes]}
+    result = {"applied": apply, "changed": [name for name, _, _ in changes]}
+    if apply:
+        from memory_hub.atlas import refresh_if_configured
+        result["atlas"] = refresh_if_configured(vault, vault.parent / '.runtime/general-memory')
+    return result
 
 
 if __name__ == "__main__":
