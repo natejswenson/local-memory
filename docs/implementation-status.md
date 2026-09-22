@@ -16,6 +16,12 @@ health, and backup receipts in private runtime storage.
 - Source-owned fitness and optional skill integrations with separate namespaces.
 - Coordinated local backups, encrypted recovery bundles, and quarantine audits.
 
+The v2 implementation additionally provides five-tool core startup, typed owner
+requests, preserved client settings with transaction rollback, SQLite activity
+search, durable managed membership, bounded semantic caching, deferred maintenance,
+and multipart recovery. See [rollout gates and limits](memory-v2-operations.md).
+Public capabilities do not imply live activation or host verification.
+
 ## Verify a local installation
 
 Run `bin/memory-hub doctor` to distinguish disabled, synthetic-pilot, and activated

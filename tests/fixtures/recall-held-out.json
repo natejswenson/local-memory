@@ -1,0 +1,27 @@
+{
+  "purpose": "Frozen supplemental synthetic evidence checks; not a model answer-quality benchmark. No threshold tuning against these cases.",
+  "notes": [
+    {"id":"cedar-workshop","body":"Workshop attendance is recorded in a cedar ledger."},
+    {"id":"global-layout","body":"Use numbered captions under diagrams.","metadata":{"project":"global"}},
+    {"id":"old-printer","body":"The printer uses amber cartridges.","metadata":{"key":"equipment.printer"}},
+    {"id":"new-printer","body":"The printer now uses violet cartridges.","metadata":{"key":"equipment.printer","supersedes":"local-memory/old-printer"}},
+    {"id":"maybe-pavilion","body":"Maybe build a pavilion by the lake.","metadata":{"status":"candidate"}},
+    {"id":"foreign-telescope","body":"Telescope calibration requires the quartz gauge.","metadata":{"project":"another-project"}},
+    {"id":"stale-locker","body":"The temporary locker is number twelve.","metadata":{"review_after":"2000-01-01"}},
+    {"id":"archived-pantry","body":"The pantry contains dried apricots.","metadata":{"status":"archived"}}
+  ],
+  "cases": [
+    {"name":"heldout-distinct-domain","query":"workshop attendance","expected":["cedar-workshop"]},
+    {"name":"heldout-question","query":"Where is workshop attendance recorded?","expected":["cedar-workshop"]},
+    {"name":"heldout-global-format","query":"numbered captions","expected":["global-layout"]},
+    {"name":"heldout-global-scope","subject":"global","query":"cedar ledger","expected":[]},
+    {"name":"heldout-correct-old-wording","query":"amber cartridges","expected":["new-printer"]},
+    {"name":"heldout-correct-new-wording","query":"violet cartridges","expected":["new-printer"]},
+    {"name":"heldout-exact-key","query":"","keys":["equipment.printer"],"expected":["new-printer"]},
+    {"name":"heldout-candidate","query":"pavilion","expected":[]},
+    {"name":"heldout-other-project","query":"quartz gauge","expected":[]},
+    {"name":"heldout-overdue","query":"temporary locker","expected":[],"status":"partial"},
+    {"name":"heldout-archived","query":"dried apricots","expected":[]},
+    {"name":"heldout-unknown","query":"submarine ballast","expected":[]}
+  ]
+}

@@ -13,6 +13,7 @@ import uuid
 from zoneinfo import ZoneInfo
 
 import yaml
+from .serialization import load_yaml
 
 from .activity import ActivityStore
 from .capture import locked
@@ -58,14 +59,14 @@ def merge(old, new):
     if old is None:
         return new
     front, rest = old.decode().split('\n---\n', 1)
-    meta = yaml.safe_load(front.removeprefix('---\n'))
+    meta = load_yaml(front.removeprefix('---\n'))
     if meta.get('managed_by') != MANAGED or rest.count(BEGIN) != 1 or rest.count(END) != 1:
         raise ValueError('ATLAS_DESTINATION_CUSTOMIZED_OR_UNMANAGED')
     if rest.index(END) < rest.index(BEGIN):
         raise ValueError('ATLAS_MARKERS_INVALID')
     # Preserve custom properties; refresh only properties the generator owns.
     new_front, new_rest = new.split('\n---\n', 1)
-    generated = yaml.safe_load(new_front.removeprefix('---\n'))
+    generated = load_yaml(new_front.removeprefix('---\n'))
     combined = {**meta, **generated}
     combined['tags'] = list(dict.fromkeys([*generated['tags'], *(meta.get('tags') or [])]))
     old_region = rest.split(BEGIN, 1)[1].split(END, 1)[0]
@@ -92,7 +93,26 @@ def plan(vault, control):
     # different scope from the owner's health preferences and coaching history.
     aliases = {Path(p).name: s for s, r in projects.items() for p in r['paths']}
     aliases.update({s: s for s in projects})
-    records = ActivityStore(vault, control).verified_rows()
+    from .writer_gate import features
+    store = ActivityStore(vault, control)
+    technical_count = None
+    if features(control).get('activity_index'):
+        from .activity_index import ActivityIndex
+        index = ActivityIndex(store)
+        with locked(index.folder, timeout=.25), index.connect() as db:
+            if index.setting(db, 'reconciled_at') is None:
+                index.reconcile(db)
+            checkpoint, high = index.catch_up(db, 100000)
+            if checkpoint != high or db.execute('SELECT count(*) FROM issues').fetchone()[0]:
+                raise ValueError('ATLAS_ACTIVITY_REQUIRES_REVIEW')
+            # Navigation uses verified index metadata, never a second corpus of
+            # bodies. Full source reconciliation runs in the maintenance worker;
+            # advice tools still verify each returned source immediately.
+            technical_count = db.execute("SELECT count(*) FROM events WHERE stream='telemetry'").fetchone()[0]
+            records = [dict(path=row['path'], revision=row['revision'], meta=json.loads(row['meta']), body='')
+                       for row in db.execute("SELECT path,revision,meta FROM events WHERE stream='outcomes'")]
+    else:
+        records = store.verified_rows()
     meaningful = [r for r in records if r['meta']['action'] != 'tool-call']
     history = defaultdict(list)
     for row in meaningful:
@@ -135,7 +155,8 @@ def plan(vault, control):
         tags = set()
         priority = {'published': 8, 'completed': 7, 'failed': 6, 'unknown': 5,
                     'scheduled': 4, 'drafted': 3, 'cancelled': 2, 'planned': 1, 'observed': 0}
-        for row in sorted(rows, key=lambda r: (priority[r['meta']['state']], r['meta']['occurred_at'], r['path']), reverse=True):
+        displayed = sorted(rows, key=lambda r: (priority[r['meta']['state']], r['meta']['occurred_at'], r['path']), reverse=True)[:200]
+        for row in displayed:
             m = row['meta']; subject = aliases.get(m['subject'])
             if subject:
                 group = link(project_paths[subject], projects[subject]['title'])
@@ -163,6 +184,8 @@ def plan(vault, control):
             if len(items) > 3:
                 lines.extend(['> [!abstract]- ' + str(len(items) - 3) + ' more recorded outcomes',
                               *['> ' + item for item in items[3:]], ''])
+        if len(rows) > len(displayed):
+            lines.extend([f'{len(rows) - len(displayed)} additional outcomes remain in the activity journal. Use recall_activity with this date to page through them.', ''])
         lines.extend(['Dates use ' + str(zone) + '; date-only source dates are preserved.',
                       'This is a summary of recorded outcomes. Tool invocations are omitted.'])
         bodies[path] = page(day + ' — Daily summary', 'daily-summary', '\n'.join(lines), tags, date=day)
@@ -243,13 +266,21 @@ These pages are refreshed views. Add personal writing outside the managed block 
     if cfg.get('fitness_area'):
         bodies['Atlas/Fitness history.base'] = '# ' + MANAGED + '\n' + yaml.safe_dump(base, sort_keys=False)
     return bodies, {'projects': len(projects), 'daily_summaries': len(history), 'knowledge_pages': len(current),
-                    'meaningful_outcomes': len(meaningful), 'technical_records': len(records) - len(meaningful)}
+                    'meaningful_outcomes': len(meaningful), 'technical_records': technical_count if technical_count is not None else len(records) - len(meaningful),
+                    '_source_revisions': {r['path']: r['revision'] for r in inventory['rows'] if not r.get('invalid')}}
 
 
 def refresh(vault, control, apply=False):
     vault, control = safe(vault), safe(control)
-    with locked(control):
-        bodies, counts = plan(vault, control)
+    # Render outside the source writer lock. Publication rechecks destination
+    # revisions, preserving manual edits and leaving changed sources queued.
+    from .change_log import ChangeLog
+    source_sequence = ChangeLog(control).high_water()
+    bodies, counts = plan(vault, control)
+    source_revisions = counts.pop('_source_revisions', {})
+    with locked(control.parent / 'atlas-writer'):
+        if source_sequence != ChangeLog(control).high_water():
+            raise ValueError('ATLAS_SOURCE_CHANGED_RETRY')
         # Replaced/overdue memories must not leave an apparently current page.
         # Retire only our known generated views, preserving personal additions.
         for path in sorted((vault / 'Atlas').rglob('*.md')):
@@ -257,7 +288,7 @@ def refresh(vault, control, apply=False):
             if name in bodies: continue
             old = read(safe(path), 1024 * 1024).decode()
             if not old.startswith('---\n'): continue
-            meta = yaml.safe_load(old[4:].split('\n---\n', 1)[0])
+            meta = load_yaml(old[4:].split('\n---\n', 1)[0])
             if meta.get('managed_by') == MANAGED:
                 bodies[name] = page(meta.get('title', path.stem), 'retired-view',
                     'This view is no longer current. See [[Atlas/Knowledge/Knowledge|current knowledge]] or [[Atlas/Home|Home]].', ['memory'])
@@ -279,6 +310,9 @@ def refresh(vault, control, apply=False):
             path = safe(vault / name)
             if (read(path, 1024 * 1024) if path.exists() else None) != old:
                 raise ValueError('ATLAS_CHANGED_DURING_REFRESH')
+        for relative, revision in source_revisions.items():
+            if hashlib.sha256(read(vault / relative, 65536)).hexdigest() != revision:
+                raise ValueError('ATLAS_SOURCE_EDITED_RETRY')
         for name, old, new in changes:
             if old is not None: atomic(backup / name, old)
             atomic(vault / name, new)
@@ -289,6 +323,10 @@ def refresh(vault, control, apply=False):
 
 
 def refresh_if_configured(vault, control):
+    from .writer_gate import features
+    if features(control).get('deferred_views'):
+        from .worker import enqueue
+        return enqueue(vault, control)
     if registry_path(vault).exists():
         return refresh(vault, control, True)
     return {'applied': False, 'reason': 'atlas_not_configured'}

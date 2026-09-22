@@ -39,11 +39,18 @@ def identity(value):
     return value.removeprefix("memory://")
 
 
-def scan(vault, issues=None):
+def scan(vault, issues=None, *, use_catalog=True):
     """Strict by default. Maintenance may collect errors without using rows as advice."""
     vault = safe(vault)
     if not vault.is_dir():
         raise OSError("Missing vault")
+    if use_catalog:
+        from .paths import control_for
+        from .writer_gate import features
+        control = control_for(vault)
+        if features(control).get("managed_catalog"):
+            from .managed_catalog import ManagedCatalog
+            return ManagedCatalog(vault, control).scan(issues)
     rows, total, count = [], 0, 0
     def walk_error(error):
         raise error
@@ -174,6 +181,8 @@ def recall_context(vault, *, project="local-memory", subject="global", query="",
         rows = scan(vault)
     except (OSError, ValueError, TypeError, UnicodeError, yaml.YAMLError):
         return {"status": "unavailable", "error": "VAULT_UNREADABLE_OR_INVALID", "records": []}
+    if semantic_ranker is not None and hasattr(semantic_ranker, 'reconcile'):
+        semantic_ranker.reconcile({(row['path'], row['revision']) for row in rows})
     groups = defaultdict(list)
     for row in rows:
         m = row["meta"]
@@ -208,6 +217,9 @@ def recall_context(vault, *, project="local-memory", subject="global", query="",
     candidates, withheld = [], Counter()
     if semantic_error:
         withheld["semantic_unavailable"] += 1
+    damaged = sum(any(row.get("invalid") for row in group) for group in groups.values())
+    if damaged:
+        withheld["managed_source_requires_review"] = damaged
     for group in groups.values():
         score = 0
         for row in group:

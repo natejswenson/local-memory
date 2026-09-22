@@ -60,6 +60,15 @@ def install(home=None, apply=False):
     if general_control.exists():
         reject_symlinks(general_control)
         settings["ProgramArguments"][-2:-2] = ["--general-control", str(general_control)]
+    operations = ROOT / '.runtime/general-memory/operations.json'
+    if operations.exists():
+        reject_symlinks(operations)
+        configured = json.loads(operations.read_text())
+        if configured.get('schema_version') != 1: raise ValueError('Invalid operations configuration')
+        if configured.get('backup_format') == 'v4':
+            if configured.get('backup_destination') != str(destination):
+                raise ValueError('Configured backup destination differs; review the schedule explicitly')
+            settings['ProgramArguments'] = [str(ROOT / 'bin/memory-hub'), 'backup', 'create']
     before = plist.read_bytes() if plist.exists() else None
     if before is not None:
         try:
@@ -68,8 +77,9 @@ def install(home=None, apply=False):
             raise ValueError("Existing backup plist is invalid; refusing replacement") from error
         if not isinstance(previous, dict) or MARKER not in before or previous.get("Label") != LABEL:
             raise ValueError("Unmanaged backup plist already exists")
-        if previous.get("ProgramArguments", [])[:2] != settings["ProgramArguments"][:2]:
+        if previous.get("ProgramArguments", [])[:2] not in ([str(executable), str(script)], [str(ROOT / 'bin/memory-hub'), 'backup']):
             raise ValueError("Existing backup plist belongs to a different installation")
+        settings = {**previous, **settings}
     summary = {"applied": apply, "loaded": False, "plist": str(plist),
                "destination": str(destination), "configuration": settings,
                "note": "Installation does not load/reload launchd; validate and load separately."}

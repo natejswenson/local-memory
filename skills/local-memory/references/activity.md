@@ -8,7 +8,9 @@ or authorize performing new external actions.
 ## Agent workflow (all skills)
 
 1. For a continuation or history question, call `recall_activity` with the relevant
-   skill/subject, date range and optional keywords. Use `state: published` for posts
+   skill/subject, date range and optional keywords. On core v2 tools, pass
+   `stream: outcomes` to omit tool-call telemetry; older tool schemas retain the
+   compatible `all` default. Use `state: published` for posts
    actually recorded as published; do not infer publication from a draft or tool call.
 2. Do the requested work using its normal skill and approvals.
 3. At a meaningful result boundary, call `record_activity(request={...})`. This is

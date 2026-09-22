@@ -12,6 +12,8 @@ import yaml
 from .capture import exclusive_create, locked
 from .skill_store import atomic, read, safe
 from .ranking import bm25
+from .serialization import load_yaml
+from .writer_gate import check_writer, features
 
 CONTRACT = 'activity-v1'
 STATES = {'planned', 'drafted', 'scheduled', 'completed', 'published', 'failed', 'cancelled', 'unknown', 'observed'}
@@ -87,6 +89,7 @@ class ActivityStore:
 
     def record(self, request):
         try:
+            check_writer(self.control)
             r = validate(request)
             if not self.vault.is_dir():
                 raise ValueError('VAULT_MISSING')
@@ -96,6 +99,11 @@ class ActivityStore:
             relative = f"Activity/{r['occurred_at'][:7]}/{event}.md"
             path = safe(self.vault / relative)
             with locked(self.control):
+                check_writer(self.control)
+                flags = features(self.control)
+                indexed = any(flags.get(k) for k in ('activity_index', 'deferred_views', 'managed_catalog'))
+                from .change_log import ChangeLog
+                changes = ChangeLog(self.control)
                 if receipt_path.exists():
                     receipt = json.loads(read(receipt_path))
                     if receipt.get('request_sha256') != fingerprint or receipt.get('path') != relative:
@@ -107,6 +115,9 @@ class ActivityStore:
                     if receipt.get('phase') not in {'pending', 'committed'}:
                         raise ValueError('INVALID_RECEIPT')
                     receipt['phase'] = 'committed'
+                    if indexed and 'sequence' not in receipt:
+                        receipt['sequence'] = changes.prepare('activity', event, relative,
+                            receipt['content_sha256'], 'activity/receipts/' + event + '.json')
                     atomic(receipt_path, canonical(receipt))
                     status = 'already_recorded'
                 else:
@@ -128,6 +139,9 @@ class ActivityStore:
                         raise ValueError('EVENT_TOO_LARGE')
                     receipt = {'version': 1, 'phase': 'pending', 'path': relative,
                                'request_sha256': fingerprint, 'content_sha256': hashlib.sha256(raw).hexdigest()}
+                    if indexed:
+                        receipt['sequence'] = changes.prepare('activity', event, relative,
+                            receipt['content_sha256'], 'activity/receipts/' + event + '.json')
                     atomic(receipt_path, canonical(receipt))
                     exclusive_create(path, raw)
                     if read(path, 32768) != raw:
@@ -135,8 +149,16 @@ class ActivityStore:
                     receipt['phase'] = 'committed'
                     atomic(receipt_path, canonical(receipt))
                     status = 'recorded'
+                recovery = False
+                if indexed:
+                    try:
+                        changes.committed(receipt['sequence'])
+                    except OSError:
+                        recovery = True
                 result = {'status': status, 'verified': True, 'event_id': event, 'path': relative,
                           'revision': receipt['content_sha256'], 'truth': 'Source-attributed historical report; not independent verification of the external action.'}
+                if recovery:
+                    result['maintenance'] = 'pending_change_recovery'
             if status == 'recorded' and r['action'] != 'tool-call':
                 try:
                     from .atlas import refresh_if_configured
@@ -148,47 +170,62 @@ class ActivityStore:
             # Never echo malformed source content or secrets in diagnostic output.
             return {'status': 'unavailable', 'verified': False, 'error': 'ACTIVITY_REJECTED_OR_REQUIRES_REVIEW'}
 
-    def verified_rows(self):
-        """One hash-verified snapshot for history recall and derived human views."""
+    def paths(self):
+        """Stream paths without a corpus-size failure."""
         if not self.vault.is_dir():
             raise ValueError('VAULT_MISSING')
         folder = safe(self.vault / 'Activity')
-        rows, total = [], 0
-        paths = []
         if folder.exists():
             for month in sorted(folder.iterdir()):
                 safe(month)
                 if month.is_dir():
                     if not re.fullmatch(r'\d{4}-\d{2}', month.name):
                         raise ValueError('INVALID_ACTIVITY_FOLDER')
-                    paths.extend(sorted(month.glob('*.md')))
-                    if len(paths) > MAX_EVENTS:
-                        raise ValueError('ACTIVITY_CAPACITY')
-        for path in paths:
-            raw = read(safe(path), 32768)
-            total += len(raw)
-            if total > 64 * 1024 * 1024:
+                    yield from sorted(month.glob('*.md'))
+
+    def verify_path(self, path):
+        path = safe(path)
+        relative = path.relative_to(self.vault).as_posix()
+        if not re.fullmatch(r'Activity/\d{4}-\d{2}/[0-9a-f-]{36}\.md', relative):
+            raise ValueError('INVALID_ACTIVITY_PATH')
+        raw = read(path, 32768)
+        text = raw.decode()
+        if not text.startswith('---\n'):
+            raise ValueError('INVALID_ACTIVITY')
+        front, body = text[4:].split('\n---\n', 1)
+        try:
+            m = load_yaml(front)
+        except yaml.YAMLError as error:
+            raise ValueError('INVALID_ACTIVITY_FRONTMATTER') from error
+        if (not isinstance(m, dict) or m.get('contract') != CONTRACT or m.get('type') != 'activity'
+                or str(uuid.UUID(m['event_id'])) != path.stem):
+            raise ValueError('INVALID_ACTIVITY')
+        timestamp(m['occurred_at']); timestamp(m['recorded_at'])
+        if m['occurred_at'][:7] != path.parent.name or m['state'] not in STATES:
+            raise ValueError('INVALID_ACTIVITY')
+        receipt = json.loads(read(self.control / 'activity/receipts' / (path.stem + '.json')))
+        if (receipt.get('phase') != 'committed' or receipt.get('path') != relative
+                or receipt.get('content_sha256') != hashlib.sha256(raw).hexdigest()):
+            raise ValueError('UNVERIFIED_ACTIVITY_REVISION')
+        return {'meta': m, 'body': body.strip(), 'path': relative,
+                'revision': receipt['content_sha256'], 'sequence': receipt.get('sequence', 0)}
+
+    def verified_rows(self):
+        """Legacy complete snapshot for inspection and compatibility."""
+        rows, total = [], 0
+        for path in self.paths():
+            row = self.verify_path(path)
+            total += len(row['body'].encode())
+            if len(rows) >= MAX_EVENTS or total > 64 * 1024 * 1024:
                 raise ValueError('ACTIVITY_CAPACITY')
-            text = raw.decode()
-            if not text.startswith('---\n'):
-                raise ValueError('INVALID_ACTIVITY')
-            front, body = text[4:].split('\n---\n', 1)
-            m = yaml.safe_load(front)
-            if m.get('contract') != CONTRACT or m.get('type') != 'activity' or str(uuid.UUID(m['event_id'])) != path.stem:
-                raise ValueError('INVALID_ACTIVITY')
-            timestamp(m['occurred_at']); timestamp(m['recorded_at'])
-            if m['occurred_at'][:7] != path.parent.name or m['state'] not in STATES:
-                raise ValueError('INVALID_ACTIVITY')
-            receipt = json.loads(read(self.control / 'activity/receipts' / (path.stem + '.json')))
-            if receipt.get('phase') != 'committed' or receipt.get('path') != path.relative_to(self.vault).as_posix() or receipt.get('content_sha256') != hashlib.sha256(raw).hexdigest():
-                raise ValueError('UNVERIFIED_ACTIVITY_REVISION')
-            rows.append({'meta': m, 'body': body.strip(), 'path': path.relative_to(self.vault).as_posix(),
-                         'revision': receipt['content_sha256']})
+            rows.append(row)
         return rows
 
     def recall(self, *, skill=None, subject=None, state=None, since=None, until=None,
-               query='', limit=10, offset=0, max_context_bytes=8192):
+               query='', limit=10, offset=0, max_context_bytes=8192, stream='all', cursor=None):
         try:
+            if stream not in {'all', 'outcomes', 'telemetry'}:
+                raise ValueError('INVALID_STREAM_OR_CURSOR')
             if type(limit) is not int or not 1 <= limit <= 30 or type(offset) is not int or not 0 <= offset <= MAX_EVENTS:
                 raise ValueError('INVALID_LIMIT')
             if type(max_context_bytes) is not int or not 512 <= max_context_bytes <= 16384:
@@ -205,9 +242,17 @@ class ActivityStore:
                     date.fromisoformat(v)
             if since and until and since > until:
                 raise ValueError('INVALID_DATE_RANGE')
+            if features(self.control).get('activity_index'):
+                from .activity_index import ActivityIndex
+                return ActivityIndex(self).recall(skill=skill, subject=subject, state=state,
+                    since=since, until=until, query=query, limit=limit, offset=offset,
+                    max_context_bytes=max_context_bytes, stream=stream, cursor=cursor)
+            if cursor is not None:
+                raise ValueError('CURSOR_REQUIRES_INDEX')
             rows = self.verified_rows()
             rows = [r for r in rows if
-                    (not skill or r['meta']['skill'] == skill)
+                    (stream == 'all' or (r['meta']['action'] == 'tool-call') == (stream == 'telemetry'))
+                    and (not skill or r['meta']['skill'] == skill)
                     and (not subject or r['meta']['subject'] == subject)
                     and (not state or r['meta']['state'] == state)
                     and (not since or r['meta']['occurred_at'][:10] >= since)

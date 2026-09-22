@@ -1,6 +1,6 @@
 # Local memory hub
 
-An Obsidian Markdown vault shared through Basic Memory's native MCP tools. Local ChatGPT desktop and Codex CLI can use the existing subscription without an OpenAI API key. New installations start in a synthetic pilot; see [activation evidence](docs/implementation-status.md) and the connection runbook before enabling personal capture.
+An Obsidian Markdown vault shared through local MCP tools, with optional Basic Memory inspection. Local ChatGPT desktop and Codex CLI can use the existing subscription without an OpenAI API key. New installations start in a synthetic pilot; see [activation evidence](docs/implementation-status.md) and the connection runbook before enabling personal capture.
 
 - `vault/`: dedicated personal Obsidian vault, excluded from Git.
 - `.runtime/pilot/vault/`: synthetic integration fixtures only.
@@ -15,6 +15,20 @@ See [encrypted recovery](docs/hub-recovery.md) for key storage and restore instr
 The [central activity guide](docs/central-activity.md) covers skill outcome reporting,
 automatic LinkedIn/X publication-log import, Codex tool-call hooks and Obsidian's
 Activity dashboard. History and current preferences use separate recall tools.
+
+## Faster shared local memory
+
+The [v2 operations guide](docs/memory-v2-operations.md) covers the small MCP server,
+client adapters, indexed activity, managed-note safety, deferred views, and streaming
+multipart recovery. Feature activation requires verified writer upgrades and a
+backup/restore gate; installing code alone does not establish client readiness.
+
+```sh
+bin/memory-hub status --all --json
+bin/memory-hub clients list
+bin/memory-hub connect --client claude-code --mode pilot
+bin/memory-hub verify --client claude-code --synthetic
+```
 
 ## Local setup
 

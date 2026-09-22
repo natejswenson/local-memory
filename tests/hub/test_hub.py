@@ -74,3 +74,15 @@ class HubTests(unittest.TestCase):
 
 if __name__ == '__main__':
     unittest.main()
+
+class LauncherIsolationTests(unittest.TestCase):
+    def test_unrelated_cwd_cannot_replace_hub_modules(self):
+        import subprocess
+        launcher = Path(__file__).resolve().parents[2] / 'bin/memory-hub'
+        if not (launcher.parent.parent / '.venv/bin/python').exists(): self.skipTest('Installed launcher venv required')
+        with tempfile.TemporaryDirectory() as temp:
+            cwd = Path(temp).resolve(); poison = cwd / 'memory_hub'; poison.mkdir()
+            (poison / '__init__.py').write_text('raise RuntimeError("CWD_MODULE_EXECUTED")')
+            result = subprocess.run([str(launcher), 'status', '--json'], cwd=cwd, capture_output=True, text=True)
+            self.assertNotIn('CWD_MODULE_EXECUTED', result.stderr)
+            self.assertEqual(json.loads(result.stdout)['writer_version'], 2)
