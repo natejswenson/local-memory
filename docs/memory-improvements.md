@@ -1,5 +1,10 @@
 # Memory workflow improvements
 
+The [v2 operations guide](memory-v2-operations.md) documents the new core MCP
+profiles, multi-client adapters, optional activity index and managed catalog,
+deferred navigation, and streaming backup formats. Legacy behavior below remains
+available while those features are disabled.
+
 Skill outcomes and publication history now have a [central activity journal](central-activity.md),
 including local publication-log synchronization, trusted Codex hooks and
 Obsidian views. General preference recall excludes this historical namespace.

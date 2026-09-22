@@ -6,7 +6,7 @@ __pycache__/
 /.runtime/
 /.issueflow/
 /issueflow/
-/.venv/
+/.venv
 /.uv-cache/
 __pycache__/
 *.pyc

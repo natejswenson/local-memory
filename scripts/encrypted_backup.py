@@ -91,11 +91,15 @@ def matching_fitness(control, hub_archive):
         raise ValueError("Fitness recovery or backup error requires attention")
     state = json.loads(read(control / "state.json", 32 * 1024 * 1024))
     archives = sorted((control / "backups").glob("fitness-*.zip"), key=lambda p: p.stat().st_mtime_ns, reverse=True)
-    with zipfile.ZipFile(hub_archive) as hub:
-        hub_manifest = json.loads(hub.read("manifest.json"))["files"]
-        fitness_files = {n.removeprefix("vault/Projects/local-fitness/"): info["sha256"]
-                         for n, info in hub_manifest.items()
-                         if n.startswith("vault/Projects/local-fitness/") and n.endswith(".md")}
+    if Path(hub_archive).is_dir():
+        from memory_hub.backup_v4 import MANIFEST_BYTES
+        hub_manifest = json.loads(read(Path(hub_archive) / "manifest.json", MANIFEST_BYTES))["files"]
+    else:
+        with zipfile.ZipFile(hub_archive) as hub:
+            hub_manifest = json.loads(hub.read("manifest.json"))["files"]
+    fitness_files = {n.removeprefix("vault/Projects/local-fitness/"): info["sha256"]
+                     for n, info in hub_manifest.items()
+                     if n.startswith("vault/Projects/local-fitness/") and n.endswith(".md")}
     for path in archives:
         raw = read(safe(path), LIMIT)
         with zipfile.ZipFile(io.BytesIO(raw)) as archive:

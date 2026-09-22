@@ -53,7 +53,7 @@ def initialize(pilot):
     return {"initialized": True, "pilot": pilot, "vault": str(vault), "config": str(config)}
 
 
-def environment(pilot):
+def environment(pilot, *, repair=True):
     _, config, vault = locations(pilot)
     reject_symlinks(config / "config.json")
     reject_symlinks(vault)
@@ -70,14 +70,15 @@ def environment(pilot):
     # validated reader/writer and must never be rewritten by the generic indexer.
     ignore = config / ".bmignore"
     reject_symlinks(ignore)
-    if not ignore.exists():
-        subprocess.run([str(ENGINE.parent / "python"), "-c",
-                        "from basic_memory.ignore_utils import create_default_bmignore; create_default_bmignore()"],
-                       env={**os.environ, "BASIC_MEMORY_CONFIG_DIR": str(config)}, check=True)
-    existing = ignore.read_text()
-    missing = [name for name in ("Projects/local-fitness", "SkillMemory", "Templates", "Scratch", "Clippings", "Activity", "Atlas", "**/Scratch/**", "**/Clippings/**") if name not in existing.splitlines()]
-    if missing:
-        ignore.write_text(existing.rstrip() + "\n" + "\n".join(missing) + "\n")
+    if repair:
+        if not ignore.exists():
+            subprocess.run([str(ENGINE.parent / "python"), "-c",
+                            "from basic_memory.ignore_utils import create_default_bmignore; create_default_bmignore()"],
+                           env={**os.environ, "BASIC_MEMORY_CONFIG_DIR": str(config)}, check=True)
+        existing = ignore.read_text()
+        missing = [name for name in ("Projects/local-fitness", "SkillMemory", "Templates", "Scratch", "Clippings", "Activity", "Atlas", "**/Scratch/**", "**/Clippings/**") if name not in existing.splitlines()]
+        if missing:
+            ignore.write_text(existing.rstrip() + "\n" + "\n".join(missing) + "\n")
     # Do not inherit cloud routing or unrelated Basic Memory projects/credentials.
     env = {k: v for k, v in os.environ.items() if not k.startswith("BASIC_MEMORY_")}
     env.update(BASIC_MEMORY_CONFIG_DIR=str(config), BASIC_MEMORY_HOME=str(vault),
@@ -100,7 +101,7 @@ def doctor():
     valid = False
     issue = None
     try:
-        environment(False)
+        environment(False, repair=False)
         valid = True
     except (OSError, ValueError) as error:
         issue = str(error)
@@ -109,7 +110,7 @@ def doctor():
     override = (codex_home / "AGENTS.override.md").exists()
     ready = (activated and valid and ENGINE.is_file() and enabled and not pilot and not override
              and registration.get("command") == str(ROOT / "bin/memory-hub")
-             and registration.get("args") == ["mcp"])
+             and registration.get("args") in (["mcp"], ["mcp", "--tool-profile", "core"], ["mcp", "--tool-profile", "core+skills"]))
     return {"ready": ready, "mode": "live" if ready else "synthetic-pilot" if pilot and enabled else "staged",
             "engine_installed": ENGINE.is_file(), "vault": str(vault),
             "vault_exists": vault.is_dir(), "state": str(state), "config_error": issue,
@@ -166,12 +167,41 @@ def activate(desktop_verified, desktop_note=None):
 
 def main():
     os.umask(0o077)
+    if len(sys.argv) > 1 and sys.argv[1] == 'mcp-inspection':
+        sys.argv[1:2] = ['mcp', '--tool-profile', 'pilot-inspection' if '--pilot' in sys.argv else 'inspection']
+    sys.path.insert(0, str(ROOT))
+    # Keep the launcher standard-library-only until it selects the venv.
+    COMMANDS = {'status', 'clients', 'connect', 'disconnect', 'verify', 'rollback',
+                'recall', 'capture', 'activity', 'index', 'maintenance', 'views',
+                'backup', 'benchmark', 'catalog', 'changes', 'features'}
+    if len(sys.argv) > 1 and (sys.argv[1] in COMMANDS or (sys.argv[1] == 'doctor' and len(sys.argv) > 2)):
+        python = ROOT / '.venv/bin/python'
+        env = {**os.environ, 'PYTHONPATH': str(ROOT)}
+        root_args = [] if '--root' in sys.argv else ['--root', str(ROOT)]
+        os.execve(str(python), [str(python), '-P', '-m', 'memory_hub.cli', *sys.argv[1:], *root_args], env)
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("command", choices=["init", "doctor", "mcp", "engine", "activate"])
     p.add_argument("--pilot", action="store_true")
     p.add_argument("--desktop-verified", action="store_true")
     p.add_argument("--desktop-note")
     args, extra = p.parse_known_args()
+    if args.command == 'mcp' and extra in (['--tool-profile', 'inspection'], ['--tool-profile', 'pilot-inspection']):
+        profile = extra[1]
+        if (profile == 'pilot-inspection') != args.pilot:
+            p.error('pilot-inspection requires --pilot; inspection requires live activation')
+        os.environ['MEMORY_HUB_TOOL_PROFILE'] = profile
+        extra = []
+    if args.command == 'mcp' and extra[:1] == ['--tool-profile']:
+        if len(extra) != 2 or extra[1] not in {'core', 'core+skills'}:
+            p.error('Expected --tool-profile core or core+skills')
+        if not args.pilot and not activation_valid():
+            raise ValueError('Live memory is not activated')
+        python = ROOT / '.venv/bin/python'
+        env = {**os.environ, 'HF_HUB_OFFLINE': '1', 'TOKENIZERS_PARALLELISM': 'false'}
+        env['PYTHONPATH'] = str(ROOT)
+        command = [str(python), '-P', '-m', 'memory_hub.mcp_server', '--root', str(ROOT),
+                   '--tool-profile', extra[1]] + (['--pilot'] if args.pilot else [])
+        os.execve(str(python), command, env)
     if args.command == "activate":
         if extra or args.pilot:
             p.error("unexpected activation arguments")

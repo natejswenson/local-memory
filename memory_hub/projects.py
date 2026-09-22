@@ -20,7 +20,8 @@ def valid_title(value):
 
 
 def registry_path(vault):
-    return safe(vault).parent / '.runtime/general-memory/project-registry.json'
+    from .paths import control_for
+    return control_for(safe(vault)) / 'project-registry.json'
 
 
 def registry(vault):

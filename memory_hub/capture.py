@@ -11,6 +11,7 @@ import json
 import os
 from pathlib import Path
 import tempfile
+import time
 import uuid
 
 import yaml
@@ -30,12 +31,22 @@ def digest(raw):
 
 
 @contextmanager
-def locked(control):
+def locked(control, timeout=None):
     control = safe(control)
     control.mkdir(mode=0o700, parents=True, exist_ok=True)
     fd = os.open(safe(control / "writer.lock"), os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, "r+") as stream:
-        fcntl.flock(stream, fcntl.LOCK_EX)
+        if timeout is None:
+            fcntl.flock(stream, fcntl.LOCK_EX)
+        else:
+            deadline = time.monotonic() + timeout
+            while True:
+                try:
+                    fcntl.flock(stream, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except BlockingIOError:
+                    if time.monotonic() >= deadline: raise ValueError('STORE_BUSY_RETRY')
+                    time.sleep(.01)
         yield
 
 
@@ -108,11 +119,17 @@ class CaptureStore:
             return {"status": "unavailable", "error": "CAPTURE_IO_FAILURE", "verified": False}
 
     def _capture(self, r):
+        from .writer_gate import check_writer, features
+        check_writer(self.control)
         if not self.vault.is_dir():
             raise OSError("Missing vault")
         fingerprint = digest(json.dumps(r, sort_keys=True, ensure_ascii=False).encode())
         cid = r["capture_id"]
         with locked(self.control):
+            check_writer(self.control)
+            flags = features(self.control)
+            from .change_log import ChangeLog
+            changes = ChangeLog(self.control)
             receipt_path = safe(self.control / "receipts" / (cid + ".json"))
             if receipt_path.exists():
                 receipt = json.loads(read(receipt_path))
@@ -129,7 +146,14 @@ class CaptureStore:
                 if digest(read(path, 16384)) != receipt.get("content_sha256"):
                     raise ValueError("CAPTURE_CHANGED_REVIEW_REQUIRED")
                 receipt["phase"] = "committed"
+                if flags.get("managed_catalog"):
+                    # Membership is published before the source on new writes.
+                    from .managed_catalog import ManagedCatalog
+                    if relative not in ManagedCatalog(self.vault, self.control).load()["records"]:
+                        raise ValueError("CAPTURE_MISSING_CATALOG_MEMBERSHIP")
                 atomic(receipt_path, json.dumps(receipt).encode())
+                if receipt.get("sequence"):
+                    changes.committed(receipt["sequence"])
                 return self.result(r, receipt, "already_created")
 
             today = date.today()
@@ -169,13 +193,24 @@ class CaptureStore:
             path = safe(self.vault / relative)
             if path.exists():
                 raise ValueError("DESTINATION_EXISTS")
+            if flags.get("activity_index") or flags.get("deferred_views") or flags.get("managed_catalog"):
+                receipt["sequence"] = changes.prepare("general", cid, relative, receipt["content_sha256"], "receipts/" + cid + ".json")
+            if flags.get("managed_catalog"):
+                from .managed_catalog import ManagedCatalog
+                ManagedCatalog(self.vault, self.control).register(relative, meta, receipt["content_sha256"])
             atomic(receipt_path, json.dumps(receipt).encode())
             exclusive_create(path, raw)
             if read(path, 16384) != raw:
                 raise ValueError("READBACK_MISMATCH")
             receipt["phase"] = "committed"
             atomic(receipt_path, json.dumps(receipt).encode())
-            return self.result(r, receipt, "created")
+            result = self.result(r, receipt, "created")
+            try:
+                if receipt.get("sequence"):
+                    changes.committed(receipt["sequence"])
+            except OSError:
+                result["maintenance"] = "pending_change_recovery"
+            return result
 
     @staticmethod
     def result(r, receipt, status):

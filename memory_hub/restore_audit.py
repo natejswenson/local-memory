@@ -16,7 +16,7 @@ def receipt_snapshot(control, vault):
     folder = safe(control / "receipts")
     activity_folder = safe(control / "activity/receipts")
     paths = sorted(folder.glob("*.json")) + sorted(activity_folder.glob("*.json"))
-    if len(paths) > 10000:
+    if len(paths) > 1000000:
         raise ValueError("Too many capture receipts")
     for path in paths:
         cid = str(uuid.UUID(path.stem))
@@ -45,6 +45,24 @@ def receipt_snapshot(control, vault):
     return receipts
 
 
+def catalog_snapshot(control, vault):
+    path = safe(control / 'managed-records/catalog.json')
+    from .writer_gate import features
+    if not path.exists():
+        if features(control).get('managed_catalog'): raise ValueError('MANAGED_CATALOG_MISSING')
+        return {}
+    value = json.loads(read(path, 8 * 1024 * 1024))
+    if value.get('schema_version') != 1 or not isinstance(value.get('records'), dict):
+        raise ValueError('INVALID_MANAGED_CATALOG')
+    rows = {}
+    for relative, entry in value['records'].items():
+        if not isinstance(relative, str) or relative.startswith('/') or '..' in relative.split('/'):
+            raise ValueError('INVALID_MANAGED_CATALOG_PATH')
+        note = safe(vault / relative)
+        rows[relative] = {'entry': entry, 'current_revision': hashlib.sha256(read(note, 65536)).hexdigest() if note.exists() else None}
+    return rows
+
+
 def audit_general(quarantine, current_control, current_vault):
     """Never authorize promotion; known receipt histories only, no inferred deletions."""
     quarantine, current_control, current_vault = map(safe, (quarantine, current_control, current_vault))
@@ -59,6 +77,17 @@ def audit_general(quarantine, current_control, current_vault):
         raise ValueError("Restored vault missing")
     live = receipt_snapshot(current_control, current_vault)
     issues = []
+    old_catalog = catalog_snapshot(restored_control, restored_vault) if restored_control.exists() else {}
+    live_catalog = catalog_snapshot(current_control, current_vault)
+    for path in sorted(set(old_catalog) | set(live_catalog)):
+        before, after = old_catalog.get(path), live_catalog.get(path)
+        reasons = []
+        if before is None: reasons.append('managed_record_not_in_snapshot')
+        if after is None: reasons.append('current_managed_membership_missing')
+        if before and before['current_revision'] is None: reasons.append('restored_managed_source_missing')
+        if after and after['current_revision'] is None: reasons.append('current_managed_source_missing_do_not_resurrect')
+        if before and after and before != after: reasons.append('managed_snapshot_differs_from_current')
+        if reasons: issues.append({'path': path, 'reasons': reasons})
     for cid in sorted(set(old) | set(live)):
         prior, current = old.get(cid), live.get(cid)
         path = (prior or current)["record"]["path"]
@@ -89,7 +118,11 @@ def audit_general(quarantine, current_control, current_vault):
         raise ValueError("Current capture state changed during audit")
     if restored_control.exists() and old != receipt_snapshot(restored_control, restored_vault):
         raise ValueError("Restored capture state changed during audit")
-    return {"status": "review_required", "activated": False, "restored_receipts": len(old),
+    if live_catalog != catalog_snapshot(current_control, current_vault):
+        raise ValueError('MANAGED_SOURCES_CHANGED_DURING_AUDIT')
+    if restored_control.exists() and old_catalog != catalog_snapshot(restored_control, restored_vault):
+        raise ValueError('RESTORED_MANAGED_SOURCES_CHANGED_DURING_AUDIT')
+    return {"managed_records_checked": len(old_catalog), "status": "review_required", "activated": False, "restored_receipts": len(old),
             "current_receipts": len(live), "issues": issues[:50], "issue_count": len(issues),
             "omitted_issues": max(0, len(issues) - 50),
-            "coverage": "Receipt-managed captures and activity only; older native/manual notes require separate review."}
+            "coverage": "Capture receipts, activity and adopted general membership; unmanaged notes require separate review."}

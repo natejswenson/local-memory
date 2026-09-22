@@ -25,7 +25,7 @@ def health(vault, backups=None, details=False, limit=20):
         for row in rows:
             m = row["meta"]
             quality[eligible(row, date.today()) or "valid_metadata"] += 1
-        result = {"status": "ok" if inventory["advice_ready"] else "needs_repair", "general_notes": len(rows),
+        result = {"status": "needs_repair" if not inventory["advice_ready"] else "warning" if inventory["issues"] else "ok", "general_notes": len(rows),
                   "statuses": dict(Counter(str(r["meta"].get("status", "missing")) for r in rows)),
                   "quality": dict(quality), "conflicting_groups": inventory["conflicting_groups"],
                   "review_reasons": dict(Counter(i["reason"] for i in inventory["issues"])),

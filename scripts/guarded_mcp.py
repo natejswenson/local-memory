@@ -111,15 +111,18 @@ class OwnershipGuard(Middleware):
     def __init__(self, *, native_pilot=False):
         super().__init__()
         self.native_pilot = native_pilot
+        import os
+        profile = os.environ.get('MEMORY_HUB_TOOL_PROFILE')
+        self.allowed = ({'search_notes', 'read_note', 'recent_activity'} | ({'write_note'} if native_pilot else set())) if profile in {'inspection', 'pilot-inspection'} else set(TOOL_DESCRIPTIONS)
 
     async def on_list_tools(self, context, call_next):
         # Publish the same surface we permit calling, with one consistent workflow.
         return [tool.model_copy(update={"description": TOOL_DESCRIPTIONS[tool.name]})
-                for tool in await call_next(context) if tool.name in TOOL_DESCRIPTIONS
+                for tool in await call_next(context) if tool.name in self.allowed
                 and (tool.name != "write_note" or self.native_pilot)]
 
     async def on_call_tool(self, context, call_next):
-        if context.message.name not in TOOL_DESCRIPTIONS:
+        if context.message.name not in self.allowed:
             raise ToolError("This shared hub exposes discovery and capture only")
         if context.message.name == "write_note" and not self.native_pilot:
             raise ToolError("General captures require capture_memory; raw writes are pilot-only")
@@ -186,8 +189,8 @@ def register_capture(mcp, store_factory, refresh=None):
             review_after=review_after, key=key, supersedes=supersedes))
         if result.get("verified") and refresh is not None:
             try:
-                refresh()
-                result["navigation"] = "refreshed"
+                refreshed = refresh()
+                result["navigation"] = "queued" if isinstance(refreshed, dict) and refreshed.get("reason") == "queued" else "refreshed"
             except (ValueError, OSError):
                 result["navigation"] = "refresh_required; capture succeeded"
         return result
@@ -209,9 +212,9 @@ def register_activity(mcp, store_factory):
     def recall_activity(skill: str | None = None, subject: str | None = None,
                         state: str | None = None, since: str | None = None, until: str | None = None,
                         query: str = "", limit: int = 10, offset: int = 0,
-                        max_context_bytes: int = 8192) -> dict:
+                        max_context_bytes: int = 8192, stream: str = "all", cursor: str | None = None) -> dict:
         return store_factory().recall(skill=skill, subject=subject, state=state, since=since,
-            until=until, query=query, limit=limit, offset=offset, max_context_bytes=max_context_bytes)
+            until=until, query=query, limit=limit, offset=offset, max_context_bytes=max_context_bytes, stream=stream, cursor=cursor)
 
 
 def skill_store():
@@ -237,9 +240,8 @@ def main():
     from memory_hub.activity import ActivityStore
     register_activity(mcp, lambda: ActivityStore(capture_store().vault, capture_store().control))
     register_recall(mcp, lambda: skill_store().vault, configured_ranker(ROOT))
-    from scripts.install_vault_workspace import install
-    register_capture(mcp, capture_store, lambda: install(skill_store().vault,
-                     capture_store().control.parent / "workspace-backups", True))
+    from memory_hub.atlas import refresh_if_configured
+    register_capture(mcp, capture_store, lambda: refresh_if_configured(skill_store().vault, capture_store().control))
     mcp.add_middleware(OwnershipGuard(native_pilot=skill_store().vault == ROOT / ".runtime/pilot/vault"))
     from basic_memory.cli.main import app
 

@@ -14,11 +14,11 @@ sys.path.insert(0, str(ROOT))
 from memory_hub.recall import encoded, recall_context
 
 
-def evaluate(mode="lexical", minimum=.65):
+def evaluate(mode="lexical", minimum=.65, fixtures=None, cache_dir=None):
     from memory_hub.semantic import LocalRanker
-    ranker = LocalRanker(ROOT / ".runtime/models", minimum=minimum) if mode == "hybrid" else None
+    ranker = LocalRanker(cache_dir or ROOT / ".runtime/models", minimum=minimum) if mode == "hybrid" else None
     results = []
-    for fixture in ("recall-cases.json", "recall-advanced.json"):
+    for fixture in (fixtures or ("recall-cases.json", "recall-advanced.json")):
         corpus = json.loads((ROOT / "tests/fixtures" / fixture).read_text())
         with tempfile.TemporaryDirectory() as tmp:
             vault = Path(tmp).resolve()
@@ -65,8 +65,10 @@ if __name__ == "__main__":
     p.add_argument("--minimum", type=float, default=.65)
     p.add_argument("--output", type=Path)
     p.add_argument("--details", action="store_true")
+    p.add_argument("--held-out", action="store_true")
+    p.add_argument("--cache-dir", type=Path)
     args = p.parse_args()
-    result = evaluate(args.mode, args.minimum)
+    result = evaluate(args.mode, args.minimum, ["recall-held-out.json"] if args.held_out else None, args.cache_dir)
     if args.output:
         args.output.write_text(json.dumps(result, indent=2) + "\n")
     if not args.details:
