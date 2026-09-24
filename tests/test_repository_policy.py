@@ -289,7 +289,7 @@ class RepositoryPolicyTests(unittest.TestCase):
 
     def test_all_workflows_parse_and_stay_in_scope(self):
         files = sorted((ROOT / '.github/workflows').glob('*.y*ml'))
-        self.assertEqual([p.name for p in files], ['ci.yml', 'hub.yml', 'main-automerge.yml'])
+        self.assertEqual([p.name for p in files], ['ci.yml', 'hub.yml', 'main-automerge.yml', 'release.yml'])
         for path in files:
             doc = workflow(path.read_text())
             self.assertIsInstance(doc, dict)
@@ -297,7 +297,8 @@ class RepositoryPolicyTests(unittest.TestCase):
             for job in doc['jobs'].values():
                 for step in job['steps']:
                     command = step.get('run', '')
-                    self.assertNotRegex(command, r'gh release|git tag|release-cut|workflow run')
+                    if path.name != 'release.yml':
+                        self.assertNotRegex(command, r'gh release|git tag|release-cut|workflow run')
                     self.assertNotRegex(command, r'head.ref|refs/heads/(dev|develop)')
         ci = workflow(self.read('.github/workflows/ci.yml'))
         self.assertEqual(ci['permissions'], {'contents': 'read'})
@@ -310,6 +311,19 @@ class RepositoryPolicyTests(unittest.TestCase):
             self.assertRegex(action['uses'], r'^actions/[a-z-]+@[0-9a-f]{40}$')
         self.assertEqual(actions[0]['with']['persist-credentials'], 'false')
         self.assertIn('PyYAML==6.0.3', job['steps'][2]['run'])
+
+    def test_release_requires_explicit_main_dispatch(self):
+        doc = workflow(self.read('.github/workflows/release.yml'))
+        self.assertEqual(set(doc['on']), {'workflow_dispatch'})
+        self.assertEqual(doc['permissions'], {'contents': 'read'})
+        self.assertEqual(doc['concurrency']['cancel-in-progress'], 'false')
+        job = doc['jobs']['release']
+        self.assertEqual(job['if'], "github.ref == 'refs/heads/main'")
+        self.assertEqual(job['permissions'], {'contents': 'write'})
+        self.assertLessEqual(int(job['timeout-minutes']), 10)
+        checkout = job['steps'][0]
+        self.assertRegex(checkout['uses'], r'^actions/checkout@[0-9a-f]{40}$')
+        self.assertEqual(checkout['with']['persist-credentials'], 'false')
 
     def test_hub_workflow_uses_pinned_synthetic_fitness_contract(self):
         doc = workflow(self.read('.github/workflows/hub.yml'))
