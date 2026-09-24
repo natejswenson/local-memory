@@ -61,8 +61,14 @@ GitHub deletes merged short-lived branches once cleanup is activated. Refresh
 local references with `git fetch --prune`. Main remains protected. Release mode
 is `manual-gate`: a same-repository merged PR can receive the optional
 `release-pending` reminder when its credential is available. Maintainers may add
-fork reminders manually. Neither job creates a tag or release; this repository
-has no release workflow. Release infrastructure is future work.
+fork reminders manually. Neither job creates a tag or release. The separate
+`release.yml` workflow runs only by explicit dispatch on `main`. It checks that
+the Node, lockfile, and Python versions agree, requires matching nonempty
+`CHANGELOG.md` notes, and creates a GitHub release for the selected commit using
+the workflow's scoped `GITHUB_TOKEN`. It does not publish packages to registries.
+Release only after the release PR's repository, application, and hub checks pass.
+Use the release skill's preflight and hash-guarded cut commands; verify the remote
+tag and release URL before reporting completion. Existing tags are never moved.
 
 ## Maintainer generator source (unreleased)
 
